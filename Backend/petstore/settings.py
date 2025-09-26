@@ -86,6 +86,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'petstore.wsgi.application'
 
 CORS_ALLOWED_ORIGINS = [
+    "https://pet-supply-store-ss-git-main-sugandv21s-projects.vercel.app",
     "https://pet-supply-store-ss.vercel.app",
     "http://localhost:5173",  
     "http://127.0.0.1:5173",
@@ -93,7 +94,7 @@ CORS_ALLOWED_ORIGINS = [
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-# CORS_ALLOW_ALL_ORIGINS = True
+ CORS_ALLOW_ALL_ORIGINS = True
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -191,6 +192,7 @@ SIMPLE_JWT = {
     "AUTH_HEADER_TYPES": ("Bearer",),
     "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
 }
+
 
 
 
