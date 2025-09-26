@@ -1,9 +1,14 @@
+// src/pages/Pets.jsx
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import { Link, useParams } from "react-router-dom";
-import api from "../api/api";
+import api from "../api/api"; 
 import { addToCart } from "../api/cartApi";
 
-// --- constants unchanged ---
+// Base without trailing slash to avoid // in paths
+const API_ROOT =
+  import.meta.env.VITE_API_BASE?.replace(/\/+$/, "") || "http://127.0.0.1:8000";
+const j = (p) => `${API_ROOT}${p.startsWith("/") ? p : `/${p}`}`; // safe join
+
 const SORT_OPTIONS = [
   { key: "best", label: "Best sellers" },
   { key: "relevance", label: "Relevance" },
@@ -23,6 +28,7 @@ const FILTER_SECTIONS = [
 
 const DEFAULT_SORT = "best";
 
+// helper: compare Set contents (returns true if equal)
 function setsEqual(a = new Set(), b = new Set()) {
   if (a === b) return true;
   if (a.size !== b.size) return false;
@@ -92,6 +98,7 @@ export default function PetProducts({ petType: propPetType = "dog" }) {
       if (v == null) return;
       if (Array.isArray(v)) {
         v.forEach((item) => {
+          // skip empty/null
           if (item === null || item === undefined) return;
           sp.append(k, String(item));
         });
@@ -108,14 +115,8 @@ export default function PetProducts({ petType: propPetType = "dog" }) {
     try {
       // Prefer combined endpoint (returns available_filters + applied_filters)
       const paramsForRequest = toSearchParams(productRequestParams);
-
-      // Build a helpful debug string showing where the request will go:
-      const base = api.defaults?.baseURL || window.location.origin;
-      console.debug("[PetProducts] Requesting:", `${base.replace(/\/$/, "")}/api/pet-page/?${paramsForRequest.toString()}`);
-
-      // IMPORTANT: use path-only with axios instance so baseURL handles origin & /api suffix
-      const res = await api.get("/api/pet-page/", { params: paramsForRequest });
-      const data = res.data ?? {};
+      const res = await api.get(j("/api/pet-page/"), { params: paramsForRequest });
+      const data = res.data;
 
       setCategories(Array.isArray(data.promos) ? data.promos : []);
       setProducts(Array.isArray(data.products) ? data.products : []);
@@ -152,18 +153,10 @@ export default function PetProducts({ petType: propPetType = "dog" }) {
       // fallback mode (older backend): call separate endpoints, also using repeated keys
       try {
         const paramsForRequest = toSearchParams(productRequestParams);
-        const catParams = toSearchParams({ pet_type: resolvedPetType });
-        console.debug(
-          "[PetProducts] fallback requests:",
-          (api.defaults?.baseURL || window.location.origin).replace(/\/$/, "") + `/api/pet-categories/?${catParams.toString()}`,
-          (api.defaults?.baseURL || window.location.origin).replace(/\/$/, "") + `/api/pet-products/?${paramsForRequest.toString()}`,
-          (api.defaults?.baseURL || window.location.origin).replace(/\/$/, "") + `/api/pet-banners/?${catParams.toString()}`
-        );
-
         const [cRes, pRes, bRes] = await Promise.all([
-          api.get("/api/pet-categories/", { params: catParams }),
-          api.get("/api/pet-products/", { params: paramsForRequest }),
-          api.get("/api/pet-banners/", { params: catParams }),
+          api.get(j("/api/pet-categories/"), { params: toSearchParams({ pet_type: resolvedPetType }) }),
+          api.get(j("/api/pet-products/"), { params: paramsForRequest }),
+          api.get(j("/api/pet-banners/"), { params: toSearchParams({ pet_type: resolvedPetType }) }),
         ]);
 
         setCategories(Array.isArray(cRes.data) ? cRes.data : (cRes.data?.results ?? []));
@@ -185,6 +178,7 @@ export default function PetProducts({ petType: propPetType = "dog" }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [productRequestParams]);
 
+  // toggle a single filter value (updates filters state)
   const toggleFilter = (section, value) => {
     setFilters((prev) => {
       const next = {
@@ -212,6 +206,7 @@ export default function PetProducts({ petType: propPetType = "dog" }) {
     });
   };
 
+  // Close filter panel when clicking outside
   useEffect(() => {
     const onDoc = (e) => {
       if (filterOpen && filterRef.current && !filterRef.current.contains(e.target)) {
@@ -222,6 +217,7 @@ export default function PetProducts({ petType: propPetType = "dog" }) {
     return () => document.removeEventListener("mousedown", onDoc);
   }, [filterOpen]);
 
+  // Add to cart click handler
   async function handleAddToCart(prod) {
     try {
       await addToCart(prod.id, 1);
@@ -232,18 +228,6 @@ export default function PetProducts({ petType: propPetType = "dog" }) {
       setCartState((s) => ({ ...s, [prod.id]: { success: false, error: "Failed" } }));
     }
   }
-
-  // --- safety: ensure mapped values are always arrays to avoid runtime .map errors ---
-  const safeCategories = Array.isArray(categories) ? categories : [];
-  const safeProducts = Array.isArray(products) ? products : [];
-  const safeBanners = Array.isArray(banners) ? banners : [];
-
-  // debug: show which base axios is using (open browser console on deployed site)
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      console.debug("[PetProducts] axios baseURL =", api.defaults?.baseURL || "(empty - same origin)");
-    }
-  }, []);
 
   if (loading) return <div className="p-6">Loading…</div>;
   if (err) return <div className="p-6 text-red-600">Failed to load data: {err}</div>;
@@ -370,13 +354,13 @@ export default function PetProducts({ petType: propPetType = "dog" }) {
               </div>
             )}
           </div>
-        </div>
+        </div>        
       </div>
 
       {/* Main layout */}
       <div className="flex gap-6">
         <aside className="hidden w-1/4 space-y-2 md:block">
-          {safeCategories.map((cat) => (
+          {categories.map((cat) => (
             <div key={cat.id} className="overflow-hidden rounded-md bg-white">
               {cat.image && <img src={cat.image} alt={cat.title || "category"} className="h-35 w-full object-cover" />}
               <div className="p-3">
@@ -388,13 +372,13 @@ export default function PetProducts({ petType: propPetType = "dog" }) {
         </aside>
 
         <section className="flex-1">
-          {safeProducts.length === 0 ? (
+          {products.length === 0 ? (
             <div className="rounded-md bg-white p-6 text-center text-gray-600">
               No products found. Try clearing filters or choosing a different sort.
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 items-stretch">
-              {safeProducts.map((prod) => {
+              {products.map((prod) => {
                 const state = cartState[prod.id] || {};
                 return (
                   <div key={prod.id} className="h-full flex flex-col rounded-lg border p-3 shadow-sm">
@@ -443,7 +427,7 @@ export default function PetProducts({ petType: propPetType = "dog" }) {
         </section>
       </div>
 
-      {safeBanners.map((ban, i) => (
+      {banners.map((ban, i) => (
         <div key={i} className="mt-8 flex items-center justify-between rounded-lg bg-[#98FB98] p-6">
           {ban.left_image && <img src={ban.left_image} alt={ban.left_image_alt || "Left Banner"} className="mr-5 h-40 object-contain md:h-48" />}
 
