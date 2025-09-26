@@ -5,9 +5,17 @@ import api from "../api/api";
 import { addToCart } from "../api/cartApi";
 
 // Base without trailing slash to avoid // in paths
-const API_ROOT =
-  import.meta.env.VITE_API_BASE?.replace(/\/+$/, "") || "http://127.0.0.1:8000";
-const j = (p) => `${API_ROOT}${p.startsWith("/") ? p : `/${p}`}`; // safe join
+// const API_ROOT =
+//   import.meta.env.VITE_API_BASE?.replace(/\/+$/, "") || "http://127.0.0.1:8000";
+// const j = (p) => `${API_ROOT}${p.startsWith("/") ? p : `/${p}`}`; // safe join
+
+const res = await api.get("/pet-page/", { params: paramsForRequest });
+// fallback batch requests:
+const [cRes, pRes, bRes] = await Promise.all([
+  api.get("/pet-categories/", { params: toSearchParams({ pet_type: resolvedPetType }) }),
+  api.get("/pet-products/", { params: paramsForRequest }),
+  api.get("/pet-banners/", { params: toSearchParams({ pet_type: resolvedPetType }) }),
+]);
 
 const SORT_OPTIONS = [
   { key: "best", label: "Best sellers" },
@@ -442,3 +450,4 @@ export default function PetProducts({ petType: propPetType = "dog" }) {
     </div>
   );
 }
+
