@@ -1,4 +1,3 @@
-// src/pages/Pets.jsx
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import { Link, useParams } from "react-router-dom";
 import api from "../api/api";
@@ -116,7 +115,7 @@ export default function PetProducts({ petType: propPetType = "dog" }) {
 
       // IMPORTANT: use path-only with axios instance so baseURL handles origin & /api suffix
       const res = await api.get("/api/pet-page/", { params: paramsForRequest });
-      const data = res.data;
+      const data = res.data ?? {};
 
       setCategories(Array.isArray(data.promos) ? data.promos : []);
       setProducts(Array.isArray(data.products) ? data.products : []);
@@ -154,7 +153,8 @@ export default function PetProducts({ petType: propPetType = "dog" }) {
       try {
         const paramsForRequest = toSearchParams(productRequestParams);
         const catParams = toSearchParams({ pet_type: resolvedPetType });
-        console.debug("[PetProducts] fallback requests:",
+        console.debug(
+          "[PetProducts] fallback requests:",
           (api.defaults?.baseURL || window.location.origin).replace(/\/$/, "") + `/api/pet-categories/?${catParams.toString()}`,
           (api.defaults?.baseURL || window.location.origin).replace(/\/$/, "") + `/api/pet-products/?${paramsForRequest.toString()}`,
           (api.defaults?.baseURL || window.location.origin).replace(/\/$/, "") + `/api/pet-banners/?${catParams.toString()}`
@@ -233,6 +233,18 @@ export default function PetProducts({ petType: propPetType = "dog" }) {
     }
   }
 
+  // --- safety: ensure mapped values are always arrays to avoid runtime .map errors ---
+  const safeCategories = Array.isArray(categories) ? categories : [];
+  const safeProducts = Array.isArray(products) ? products : [];
+  const safeBanners = Array.isArray(banners) ? banners : [];
+
+  // debug: show which base axios is using (open browser console on deployed site)
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      console.debug("[PetProducts] axios baseURL =", api.defaults?.baseURL || "(empty - same origin)");
+    }
+  }, []);
+
   if (loading) return <div className="p-6">Loading…</div>;
   if (err) return <div className="p-6 text-red-600">Failed to load data: {err}</div>;
 
@@ -241,18 +253,130 @@ export default function PetProducts({ petType: propPetType = "dog" }) {
       {/* Breadcrumb */}
       <div className="mb-3 text-sm text-gray-500">Home / {title}</div>
 
-      {/* Toolbar */} 
-      {/* ... rest of rendering unchanged (kept for brevity) ... */}
-      {/* (paste your existing render code here unchanged) */}
+      {/* Toolbar */}
       <div className="mb-6 grid grid-cols-1 items-center gap-1 sm:grid-cols-3">
-        {/* left, center, sort UI — unchanged */}
-        {/* ... */}
+        <div className="sm:col-span-1">
+          <div className="relative inline-block" ref={filterRef}>
+            <button
+              type="button"
+              aria-expanded={filterOpen}
+              onClick={() => setFilterOpen((v) => !v)}
+              className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm text-gray-800 shadow-sm hover:bg-gray-50"
+            >
+              <span className="inline-flex h-5 w-5 items-center justify-center rounded border">≡</span>
+              Filters
+            </button>
+            {filterOpen && (
+              <div className="absolute z-50 mt-2 w-[280px] rounded-md border bg-white p-3 shadow-lg">
+                <div className="mb-2 flex items-center justify-between">
+                  <div className="text-sm font-medium">Filters</div>
+                  <button
+                    className="text-xs text-blue-600 hover:underline"
+                    onClick={clearAllFilters}
+                  >
+                    Clear all
+                  </button>
+                </div>
+                <div className="max-h-[60vh] space-y-4 overflow-auto pr-1">
+                  {["brand", "size", "breed", "life_stage", "flavor"].map((key) => {
+                    const items =
+                      (filterOptions && filterOptions[key] && filterOptions[key].length > 0)
+                        ? filterOptions[key]
+                        : (FILTER_SECTIONS.find((s) => s.key === key)?.items || []);
+                    const title = key.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+                    if (!items || items.length === 0) return null;
+                    return (
+                      <div key={key}>
+                        <div className="mb-1 text-sm font-semibold">
+                          {title} <span className="text-gray-400">›</span>
+                        </div>
+                        <div className="rounded border bg-gray-50 p-2">
+                          {items.map((label) => {
+                            const active = filters[key].has(label);
+                            return (
+                              <label
+                                key={label}
+                                className="mb-1 flex cursor-pointer items-center gap-2 text-sm last:mb-0"
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={active}
+                                  onChange={() => toggleFilter(key, label)}
+                                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                />
+                                <span>{label}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="mt-3 flex justify-end gap-2">
+                  <button
+                    className="rounded border px-3 py-1.5 text-sm hover:bg-gray-50"
+                    onClick={() => setFilterOpen(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="rounded bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700"
+                    onClick={() => setFilterOpen(false)}
+                  >
+                    Apply
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Center */}
+        <div className="sm:col-span-1 flex justify-center">
+          <div className="relative">
+            <h2 className="text-xl font-semibold">{title}</h2>
+            <span className="absolute -bottom-1 left-1/2 h-0.5 w-25 -translate-x-1/2 rounded bg-black" />
+          </div>
+        </div>
+
+        {/* Sort */}
+        <div className="sm:col-span-1 flex justify-end">
+          <div className="relative inline-block">
+            <button
+              type="button"
+              aria-expanded={sortOpen}
+              onClick={() => setSortOpen((v) => !v)}
+              className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm text-gray-800 shadow-sm hover:bg-gray-50"
+            >
+              Sort by <span className="text-xs">▾</span>
+            </button>
+            {sortOpen && (
+              <div className="absolute right-0 z-50 mt-2 w-48 rounded-md border bg-white p-2 shadow-lg">
+                {SORT_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.key}
+                    onClick={() => {
+                      setSort(opt.key);
+                      setSortOpen(false);
+                    }}
+                    className={`mb-1 w-full rounded px-2 py-1 text-left text-sm last:mb-0 hover:bg-gray-50 ${
+                      sort === opt.key ? "bg-blue-50 text-blue-700" : ""
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Main layout */}
       <div className="flex gap-6">
         <aside className="hidden w-1/4 space-y-2 md:block">
-          {categories.map((cat) => (
+          {safeCategories.map((cat) => (
             <div key={cat.id} className="overflow-hidden rounded-md bg-white">
               {cat.image && <img src={cat.image} alt={cat.title || "category"} className="h-35 w-full object-cover" />}
               <div className="p-3">
@@ -264,13 +388,13 @@ export default function PetProducts({ petType: propPetType = "dog" }) {
         </aside>
 
         <section className="flex-1">
-          {products.length === 0 ? (
+          {safeProducts.length === 0 ? (
             <div className="rounded-md bg-white p-6 text-center text-gray-600">
               No products found. Try clearing filters or choosing a different sort.
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 items-stretch">
-              {products.map((prod) => {
+              {safeProducts.map((prod) => {
                 const state = cartState[prod.id] || {};
                 return (
                   <div key={prod.id} className="h-full flex flex-col rounded-lg border p-3 shadow-sm">
@@ -319,7 +443,7 @@ export default function PetProducts({ petType: propPetType = "dog" }) {
         </section>
       </div>
 
-      {banners.map((ban, i) => (
+      {safeBanners.map((ban, i) => (
         <div key={i} className="mt-8 flex items-center justify-between rounded-lg bg-[#98FB98] p-6">
           {ban.left_image && <img src={ban.left_image} alt={ban.left_image_alt || "Left Banner"} className="mr-5 h-40 object-contain md:h-48" />}
 
