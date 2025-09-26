@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply font-roboto;
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+    scroll-behavior: smooth;
+  }
+}
+
+body {
+  cursor: default;
+}
+
+a, button {
+  cursor: pointer;
+}
+
+textarea, input {
+  cursor: text;
+}
+
+/* App-wide fancy cursor */
+.app-root {
+  cursor: grab;
+}
+
+@keyframes pop {
+  0% { transform: scale(0.8); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.animate-pop {
+  animation: pop 0.3s ease-out;
+}
