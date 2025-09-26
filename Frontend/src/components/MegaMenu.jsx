@@ -1,3 +1,4 @@
+// src/components/MegaMenu.jsx
 import React from "react";
 import { Link } from "react-router-dom";
 
@@ -6,15 +7,26 @@ import { Link } from "react-router-dom";
  *
  * Props:
  *  - menu: optional full menu object from API (preferred — contains sections, brands, left_image, right_image)
- *  - sections: fallback sections array (keeps backwards compatibility)
+ *  - sections: fallback sections array
  *  - activeKey: which menu is active (e.g. "small-pets", "pet-service", "shop-by-breed", "shop-by-brand")
  *  - centerX: number (px) used for narrow alignment (optional)
  *  - narrowKeys: array of keys that should render as reduced-width centered boxes
- *
- * Notes:
- *  - Serializers should return image URLs if possible (absolute). This component will fallback to building an absolute URL
- *    using VITE_API_BASE if the returned image path is relative (starts with '/media/' or a relative path).
  */
+
+/** Normalize VITE_API_BASE and return base origin without trailing slash and without a trailing "/api" */
+function getApiOrigin() {
+  const raw = import.meta.env.VITE_API_BASE || "";
+  if (!raw) return "";
+  try {
+    // strip trailing slashes
+    let out = raw.replace(/\/+$/, "");
+    // if user configured .../api or .../api/ remove that suffix so we can append relative paths safely
+    out = out.replace(/\/api\/?$/, "");
+    return out;
+  } catch {
+    return raw;
+  }
+}
 
 // helper: build usable image URL (handles absolute/relative)
 function buildImageUrl(imgPath) {
@@ -23,49 +35,51 @@ function buildImageUrl(imgPath) {
   // already absolute
   if (/^https?:\/\//i.test(imgPath)) return imgPath;
 
-  // starts with slash -> treat as relative to backend origin
+  const origin = getApiOrigin();
+
+  // starts with slash -> treat as root-relative (e.g. "/media/..." or "/static/...")
   if (imgPath.startsWith("/")) {
-    const apiBase = (import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000/api/").replace(/\/api\/?$/, "");
-    return `${apiBase}${imgPath}`;
+    return origin ? `${origin}${imgPath}` : imgPath;
   }
 
-  // relative path (e.g. "mega_menu_brands/foo.jpg") -> assume under /media/
-  const apiBase = (import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000/api/").replace(/\/api\/?$/, "");
-  return `${apiBase}/media/${imgPath}`;
+  // if looks like "media/..." or contains a folder, treat as relative to origin root
+  if (/^media\/|^static\/|^\w+\/.+/.test(imgPath)) {
+    return origin ? `${origin}/${imgPath.replace(/^\/+/, "")}` : `/${imgPath.replace(/^\/+/, "")}`;
+  }
+
+  // otherwise treat as file name under /media/
+  return origin ? `${origin}/media/${imgPath.replace(/^\/+/, "")}` : `/media/${imgPath.replace(/^\/+/, "")}`;
 }
 
 export default function MegaMenu({ menu = null, sections = [], activeKey, centerX = null, narrowKeys = [] }) {
   const sectionsData = menu?.sections || sections || [];
-  const isNarrow = narrowKeys.includes(activeKey);
+  const isNarrow = Array.isArray(narrowKeys) && narrowKeys.includes(activeKey);
 
-  // ---------- SHOP BY BRAND (FULL-WIDTH GRID OF LOGOS) ----------
+  // ---------- SHOP BY BRAND ----------
   if (activeKey === "shop-by-brand") {
     const brands = menu?.brands || [];
 
     return (
-      <div className="w-full bg-white border-t py-6" role="region" aria-label="Shop by Brand menu">
-        <div className="mx-auto px-2">
-          {/* <h3 className="text-base font-semibold text-gray-800 mb-4">Shop by Brand</h3> */}
-
+      <div className="w-full bg-white border-t py-6" role="region" aria-label="Shop by Brand">
+        <div className="mx-auto px-2 max-w-7xl">
           {brands.length ? (
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 items-center">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 items-center">
               {brands.map((b, i) => {
                 const imgUrl = buildImageUrl(b.image);
                 return (
-                 <div key={i} className="flex items-center justify-center p-4">
-  {imgUrl ? (
-    <img
-      src={imgUrl}
-      alt={b.name}
-      className="h-32 w-auto object-contain" // taller logos, width auto
-      loading="lazy"
-    />
-  ) : (
-    <div className="text-xs text-gray-500">{b.name}</div>
-  )}
-</div>
-
-
+                  <div key={i} className="flex items-center justify-center p-4">
+                    {imgUrl ? (
+                      <img
+                        src={imgUrl}
+                        alt={b.name || `Brand ${i + 1}`}
+                        className="h-28 w-auto object-contain"
+                        loading="lazy"
+                        onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = "/placeholder.png"; }}
+                      />
+                    ) : (
+                      <div className="text-xs text-gray-500">{b.name}</div>
+                    )}
+                  </div>
                 );
               })}
             </div>
@@ -77,18 +91,18 @@ export default function MegaMenu({ menu = null, sections = [], activeKey, center
     );
   }
 
-  // ---------- SHOP BY BREED (LEFT IMAGE, TWO LISTS, RIGHT IMAGE) ----------
+  // ---------- SHOP BY BREED ----------
   if (activeKey === "shop-by-breed") {
-    const dogSection = sectionsData.find((s) => /dog/i.test(s.title || "")) || sectionsData[0];
-    const catSection = sectionsData.find((s) => /cat/i.test(s.title || "")) || sectionsData[1] || sectionsData[0];
+    const dogSection = sectionsData.find((s) => /dog/i.test(s.title || "")) || sectionsData[0] || {};
+    const catSection = sectionsData.find((s) => /cat/i.test(s.title || "")) || sectionsData[1] || sectionsData[0] || {};
 
     const leftImageUrl = buildImageUrl(menu?.left_image);
     const rightImageUrl = buildImageUrl(menu?.right_image);
 
     return (
-      <div className="w-full bg-white border-t py-6" role="region" aria-label="Shop by Breed menu">
+      <div className="w-full bg-white border-t py-6" role="region" aria-label="Shop by Breed">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-start gap-6">
+          <div className="flex flex-col lg:flex-row items-start gap-6">
             {/* Left image (hidden on small screens) */}
             <div className="hidden lg:flex lg:w-56 lg:shrink-0 items-center justify-center">
               {leftImageUrl ? (
@@ -97,19 +111,18 @@ export default function MegaMenu({ menu = null, sections = [], activeKey, center
                   alt={menu?.title ? `${menu.title} dog` : "Dog"}
                   className="w-56 max-h-64 object-contain"
                   loading="lazy"
+                  onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = "/placeholder.png"; }}
                 />
               ) : null}
             </div>
 
             {/* Middle breed lists */}
-            <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-12">
+            <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
                 {dogSection?.title && (
                   <h3 className="text-sm font-semibold text-gray-800 mb-3">
                     {dogSection.path ? (
-                      <Link to={dogSection.path} className="hover:underline">
-                        {dogSection.title}
-                      </Link>
+                      <Link to={dogSection.path} className="hover:underline">{dogSection.title}</Link>
                     ) : (
                       dogSection.title
                     )}
@@ -124,9 +137,7 @@ export default function MegaMenu({ menu = null, sections = [], activeKey, center
                 {catSection?.title && (
                   <h3 className="text-sm font-semibold text-gray-800 mb-3">
                     {catSection.path ? (
-                      <Link to={catSection.path} className="hover:underline">
-                        {catSection.title}
-                      </Link>
+                      <Link to={catSection.path} className="hover:underline">{catSection.title}</Link>
                     ) : (
                       catSection.title
                     )}
@@ -146,6 +157,7 @@ export default function MegaMenu({ menu = null, sections = [], activeKey, center
                   alt={menu?.title ? `${menu.title} cat` : "Cat"}
                   className="w-56 max-h-64 object-contain"
                   loading="lazy"
+                  onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = "/placeholder.png"; }}
                 />
               ) : null}
             </div>
@@ -155,7 +167,7 @@ export default function MegaMenu({ menu = null, sections = [], activeKey, center
     );
   }
 
-  // ---------- NARROW menus (small-pets, pet-service, etc.) ----------
+  // ---------- NARROW menus ----------
   if (isNarrow) {
     const narrowWidthClass = activeKey === "pet-service" ? "max-w-2xl" : "max-w-md";
     const innerGridForNarrow = activeKey === "pet-service" ? "grid grid-cols-1 sm:grid-cols-2 gap-6" : "grid grid-cols-1 gap-3";
@@ -168,7 +180,7 @@ export default function MegaMenu({ menu = null, sections = [], activeKey, center
               <div
                 style={{
                   position: "absolute",
-                  top: -25, // slightly lifted into the nav row
+                  top: -25,
                   left: centerX != null ? `${centerX}px` : "50%",
                   transform: "translateX(-50%)",
                   zIndex: 40,
@@ -184,7 +196,6 @@ export default function MegaMenu({ menu = null, sections = [], activeKey, center
                             {sec.path ? <Link to={sec.path} className="hover:underline">{sec.title}</Link> : <span>{sec.title}</span>}
                           </h3>
                         )}
-
                         {Array.isArray(sec.categories) && sec.categories.length ? (
                           <ul className="text-xs text-gray-600 space-y-1">
                             {sec.categories.map((cat, i) => <li key={i}>{cat}</li>)}
@@ -198,7 +209,6 @@ export default function MegaMenu({ menu = null, sections = [], activeKey, center
                 </div>
               </div>
 
-              {/* reserve vertical space so subsequent content doesn't jump */}
               <div style={{ height: activeKey === "pet-service" ? 220 : 140 }} aria-hidden />
             </div>
           </div>
@@ -209,7 +219,7 @@ export default function MegaMenu({ menu = null, sections = [], activeKey, center
 
   // ---------- DEFAULT full-width mega menu ----------
   return (
-    <div className="w-full bg-white shadow-md border-t">
+    <div className="w-full bg-white shadow-md border-t" role="region" aria-label="Mega menu">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {sectionsData.map((sec, idx) => (
