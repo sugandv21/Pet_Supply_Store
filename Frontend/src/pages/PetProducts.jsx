@@ -1,22 +1,9 @@
-// src/pages/Pets.jsx
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import { Link, useParams } from "react-router-dom";
-import api from "../api/api"; 
+import api from "../api/api";
 import { addToCart } from "../api/cartApi";
 
-// Base without trailing slash to avoid // in paths
-// const API_ROOT =
-//   import.meta.env.VITE_API_BASE?.replace(/\/+$/, "") || "http://127.0.0.1:8000";
-// const j = (p) => `${API_ROOT}${p.startsWith("/") ? p : `/${p}`}`; // safe join
-
-const res = await api.get("/pet-page/", { params: paramsForRequest });
-// fallback batch requests:
-const [cRes, pRes, bRes] = await Promise.all([
-  api.get("/pet-categories/", { params: toSearchParams({ pet_type: resolvedPetType }) }),
-  api.get("/pet-products/", { params: paramsForRequest }),
-  api.get("/pet-banners/", { params: toSearchParams({ pet_type: resolvedPetType }) }),
-]);
-
+// Constants
 const SORT_OPTIONS = [
   { key: "best", label: "Best sellers" },
   { key: "relevance", label: "Relevance" },
@@ -88,15 +75,15 @@ export default function PetProducts({ petType: propPetType = "dog" }) {
 
   // Build params object; keep using arrays in JS, but we'll serialize to repeated keys below
   const productRequestParams = useMemo(() => {
-    const params = {
+    const p = {
       pet_type: resolvedPetType,
       sort,
       page: 1,
     };
     for (const [k, s] of Object.entries(filters)) {
-      if (s && s.size > 0) params[k] = Array.from(s);
+      if (s && s.size > 0) p[k] = Array.from(s);
     }
-    return params;
+    return p;
   }, [resolvedPetType, sort, filters]);
 
   // helper: create URLSearchParams with repeated keys for arrays
@@ -106,7 +93,6 @@ export default function PetProducts({ petType: propPetType = "dog" }) {
       if (v == null) return;
       if (Array.isArray(v)) {
         v.forEach((item) => {
-          // skip empty/null
           if (item === null || item === undefined) return;
           sp.append(k, String(item));
         });
@@ -123,7 +109,7 @@ export default function PetProducts({ petType: propPetType = "dog" }) {
     try {
       // Prefer combined endpoint (returns available_filters + applied_filters)
       const paramsForRequest = toSearchParams(productRequestParams);
-      const res = await api.get(j("/api/pet-page/"), { params: paramsForRequest });
+      const res = await api.get("/pet-page/", { params: paramsForRequest });
       const data = res.data;
 
       setCategories(Array.isArray(data.promos) ? data.promos : []);
@@ -162,9 +148,9 @@ export default function PetProducts({ petType: propPetType = "dog" }) {
       try {
         const paramsForRequest = toSearchParams(productRequestParams);
         const [cRes, pRes, bRes] = await Promise.all([
-          api.get(j("/api/pet-categories/"), { params: toSearchParams({ pet_type: resolvedPetType }) }),
-          api.get(j("/api/pet-products/"), { params: paramsForRequest }),
-          api.get(j("/api/pet-banners/"), { params: toSearchParams({ pet_type: resolvedPetType }) }),
+          api.get("/pet-categories/", { params: toSearchParams({ pet_type: resolvedPetType }) }),
+          api.get("/pet-products/", { params: paramsForRequest }),
+          api.get("/pet-banners/", { params: toSearchParams({ pet_type: resolvedPetType }) }),
         ]);
 
         setCategories(Array.isArray(cRes.data) ? cRes.data : (cRes.data?.results ?? []));
@@ -352,9 +338,7 @@ export default function PetProducts({ petType: propPetType = "dog" }) {
                       setSort(opt.key);
                       setSortOpen(false);
                     }}
-                    className={`mb-1 w-full rounded px-2 py-1 text-left text-sm last:mb-0 hover:bg-gray-50 ${
-                      sort === opt.key ? "bg-blue-50 text-blue-700" : ""
-                    }`}
+                    className={`mb-1 w-full rounded px-2 py-1 text-left text-sm last:mb-0 hover:bg-gray-50 ${sort === opt.key ? "bg-blue-50 text-blue-700" : ""}`}
                   >
                     {opt.label}
                   </button>
@@ -362,7 +346,7 @@ export default function PetProducts({ petType: propPetType = "dog" }) {
               </div>
             )}
           </div>
-        </div>        
+        </div>
       </div>
 
       {/* Main layout */}
@@ -450,4 +434,5 @@ export default function PetProducts({ petType: propPetType = "dog" }) {
     </div>
   );
 }
+
 
