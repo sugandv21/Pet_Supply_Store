@@ -2,23 +2,26 @@
 import axios from "axios";
 
 /**
- * Normalize base:
- * - Prefer VITE_API_BASE if set
- * - Otherwise use empty string (relative paths) so production deploys that serve backend
- *   from same origin keep working without env vars.
- * - Remove trailing slashes.
+ * API base handling:
+ * - If VITE_API_BASE is provided at build time, use that (no trailing slash).
+ * - Otherwise use empty string so axios uses relative paths (same origin).
  */
-const rawBase = import.meta.env.VITE_API_BASE ?? "";
-const API_BASE = rawBase.replace(/\/+$/, ""); // may be ""
+const rawBase = (import.meta.env.VITE_API_BASE ?? "").replace(/\/+$/, "");
+const API_BASE = rawBase || ""; // empty => relative paths ("/api/..." will go to same origin)
 
-// axios instance: when API_BASE === "" axios will use relative paths (same origin)
+// Create axios instance. When baseURL === "" axios will issue relative requests.
 const api = axios.create({
   baseURL: API_BASE || "",
-  withCredentials: false, // set true if you rely on cookies/sessions
+  withCredentials: false, // set true if you use cookie-based auth
   headers: { "Content-Type": "application/json" },
 });
 
-// --- token helpers (keys: "access" and "refresh") ---
+// Debug: print final baseURL in browser console (helps verify Vercel env)
+if (typeof window !== "undefined") {
+  console.debug("[api] baseURL =", api.defaults.baseURL || "(empty - using same origin)");
+}
+
+// ---------------- token helpers ----------------
 const getAccess = () => localStorage.getItem("access");
 const getRefresh = () => localStorage.getItem("refresh");
 const setAccess = (tok) => tok && localStorage.setItem("access", tok);
@@ -30,11 +33,11 @@ const clearTokens = () => {
   try { window.dispatchEvent(new Event("authChanged")); } catch (_) {}
 };
 
-// set initial Authorization header if access exists
+// initialize default Authorization header if access token exists
 const initAccess = getAccess();
 if (initAccess) api.defaults.headers.common["Authorization"] = `Bearer ${initAccess}`;
 
-// attach access token to every request if present
+// attach access token to every outgoing request when present
 api.interceptors.request.use((config) => {
   const access = getAccess();
   if (access) {
@@ -44,7 +47,7 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// queue for refresh
+// ---------------- refresh queue logic ----------------
 let isRefreshing = false;
 let failedQueue = [];
 const processQueue = (error, token = null) => {
@@ -56,30 +59,24 @@ const processQueue = (error, token = null) => {
 };
 
 /**
- * Try several sensible refresh endpoints:
- * - If API_BASE already contains "/api", try `${API_BASE}/token/refresh/`
- * - Otherwise try `${API_BASE}/api/token/refresh/` and `${API_BASE}/token/refresh/`
+ * Attempt to refresh using several sane endpoints:
+ * - If API_BASE provided, try `${API_BASE}/token/refresh/` then `${API_BASE}/api/token/refresh/`
+ * - Otherwise try relative `/token/refresh/` then `/api/token/refresh/`
  */
 async function requestRefresh() {
   const refreshToken = getRefresh();
   if (!refreshToken) throw new Error("No refresh token available");
 
-  const candidates = [];
-  // API_BASE normalized (may be empty)
-  if (API_BASE) {
-    candidates.push(`${API_BASE}/token/refresh/`);
-    candidates.push(`${API_BASE}/api/token/refresh/`);
-  } else {
-    // relative attempts
-    candidates.push(`/token/refresh/`);
-    candidates.push(`/api/token/refresh/`);
-  }
+  const candidates = API_BASE
+    ? [`${API_BASE}/token/refresh/`, `${API_BASE}/api/token/refresh/`]
+    : ["/token/refresh/", "/api/token/refresh/"];
 
   let lastErr = null;
   for (const url of candidates) {
     try {
+      // use axios (not api) to avoid interceptor recursion
       const resp = await axios.post(url, { refresh: refreshToken });
-      return resp.data; // expects { access: "...", refresh?: "..." }
+      return resp.data; // expected { access: "...", refresh?: "..." }
     } catch (e) {
       lastErr = e;
     }
@@ -92,15 +89,15 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // If no response or status not 401 -> reject
+    // If no response or not a 401 -> forward error
     if (!error.response) return Promise.reject(error);
     if (error.response.status !== 401) return Promise.reject(error);
 
-    // Avoid retry loop
+    // Prevent infinite retry loops
     if (originalRequest._retry) return Promise.reject(error);
     originalRequest._retry = true;
 
-    // Queue if already refreshing
+    // If a refresh is already in progress, queue this request
     if (isRefreshing) {
       return new Promise((resolve, reject) => {
         failedQueue.push({
@@ -109,7 +106,7 @@ api.interceptors.response.use(
             originalRequest.headers.Authorization = "Bearer " + token;
             resolve(api(originalRequest));
           },
-          reject: (err) => reject(err),
+          reject,
         });
       });
     }
@@ -123,17 +120,21 @@ api.interceptors.response.use(
 
       if (!newAccess) throw new Error("Refresh response did not include an access token");
 
+      // persist tokens
       setAccess(newAccess);
       if (newRefresh) setRefresh(newRefresh);
 
+      // update default header and process queued requests
       api.defaults.headers.common["Authorization"] = `Bearer ${newAccess}`;
       processQueue(null, newAccess);
 
+      // retry original request with new token
       originalRequest.headers = originalRequest.headers || {};
       originalRequest.headers.Authorization = `Bearer ${newAccess}`;
       return api(originalRequest);
     } catch (err) {
       processQueue(err, null);
+      // refresh failed -> clear tokens to force login
       clearTokens();
       return Promise.reject(err);
     } finally {
