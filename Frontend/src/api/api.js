@@ -1,97 +1,24 @@
-// // src/api.js
-// import axios from "axios";
-
-// const API_BASE = import.meta.env.VITE_API_BASE || "https://pet-supply-store-ss.onrender.com/api";
-
-// const api = axios.create({
-//   baseURL: API_BASE,
-// });
-
-// // Attach access token
-// api.interceptors.request.use((config) => {
-//   const access = localStorage.getItem("access_token");
-//   if (access) {
-//     config.headers.Authorization = `Bearer ${access}`;
-//   }
-//   return config;
-// });
-
-// // Response interceptor to handle token refresh
-// let isRefreshing = false;
-// let failedQueue = [];
-
-// const processQueue = (error, token = null) => {
-//   failedQueue.forEach((prom) => {
-//     if (error) prom.reject(error);
-//     else prom.resolve(token);
-//   });
-//   failedQueue = [];
-// };
-
-// api.interceptors.response.use(
-//   (response) => response,
-//   async (error) => {
-//     const originalRequest = error.config;
-
-//     // If error response indicates token invalid / expired
-//     if (error.response && error.response.status === 401 && !originalRequest._retry) {
-//       originalRequest._retry = true;
-
-//       const refreshToken = localStorage.getItem("refresh_token");
-//       if (!refreshToken) {
-//         // no refresh token: redirect to login or reject
-//         return Promise.reject(error);
-//       }
-
-//       if (isRefreshing) {
-//         // queue requests while refreshing
-//         return new Promise(function (resolve, reject) {
-//           failedQueue.push({ resolve, reject });
-//         })
-//           .then((token) => {
-//             originalRequest.headers.Authorization = "Bearer " + token;
-//             return api(originalRequest);
-//           })
-//           .catch((err) => Promise.reject(err));
-//       }
-
-//       isRefreshing = true;
-
-//       try {
-//         const res = await axios.post(`${API_BASE}/token/refresh/`, { refresh: refreshToken });
-//         const newAccess = res.data.access;
-//         localStorage.setItem("access_token", newAccess);
-//         api.defaults.headers.common["Authorization"] = "Bearer " + newAccess;
-//         processQueue(null, newAccess);
-//         return api(originalRequest);
-//       } catch (err) {
-//         processQueue(err, null);
-//         // refresh failed -> clear tokens & redirect to login if desired
-//         localStorage.removeItem("access_token");
-//         localStorage.removeItem("refresh_token");
-//         localStorage.removeItem("user");
-//         return Promise.reject(err);
-//       } finally {
-//         isRefreshing = false;
-//       }
-//     }
-
-//     return Promise.reject(error);
-//   }
-// );
-
-// export default api;
-
 // src/api.js
 import axios from "axios";
 
-const API_BASE = (import.meta.env.VITE_API_BASE || "http://localhost:8000/api").replace(/\/+$/, "");
+/**
+ * Normalize base:
+ * - Prefer VITE_API_BASE if set
+ * - Otherwise use empty string (relative paths) so production deploys that serve backend
+ *   from same origin keep working without env vars.
+ * - Remove trailing slashes.
+ */
+const rawBase = import.meta.env.VITE_API_BASE ?? "";
+const API_BASE = rawBase.replace(/\/+$/, ""); // may be ""
 
+// axios instance: when API_BASE === "" axios will use relative paths (same origin)
 const api = axios.create({
-  baseURL: API_BASE, // example: "https://api.example.com/api"
+  baseURL: API_BASE || "",
+  withCredentials: false, // set true if you rely on cookies/sessions
+  headers: { "Content-Type": "application/json" },
 });
 
-// --- token helpers (use keys: "access" and "refresh") ---
+// --- token helpers (keys: "access" and "refresh") ---
 const getAccess = () => localStorage.getItem("access");
 const getRefresh = () => localStorage.getItem("refresh");
 const setAccess = (tok) => tok && localStorage.setItem("access", tok);
@@ -105,9 +32,7 @@ const clearTokens = () => {
 
 // set initial Authorization header if access exists
 const initAccess = getAccess();
-if (initAccess) {
-  api.defaults.headers.common["Authorization"] = `Bearer ${initAccess}`;
-}
+if (initAccess) api.defaults.headers.common["Authorization"] = `Bearer ${initAccess}`;
 
 // attach access token to every request if present
 api.interceptors.request.use((config) => {
@@ -119,10 +44,9 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Response interceptor to handle token refresh
+// queue for refresh
 let isRefreshing = false;
 let failedQueue = [];
-
 const processQueue = (error, token = null) => {
   failedQueue.forEach(({ resolve, reject }) => {
     if (error) reject(error);
@@ -131,14 +55,36 @@ const processQueue = (error, token = null) => {
   failedQueue = [];
 };
 
+/**
+ * Try several sensible refresh endpoints:
+ * - If API_BASE already contains "/api", try `${API_BASE}/token/refresh/`
+ * - Otherwise try `${API_BASE}/api/token/refresh/` and `${API_BASE}/token/refresh/`
+ */
 async function requestRefresh() {
   const refreshToken = getRefresh();
   if (!refreshToken) throw new Error("No refresh token available");
 
-  // POST to the refresh endpoint; using axios (not `api`) to avoid interceptor recursion
-  const url = `${API_BASE}/token/refresh/`; // expecting { refresh: "<token>" } -> returns { access: "...", refresh?: "..." }
-  const resp = await axios.post(url, { refresh: refreshToken });
-  return resp.data;
+  const candidates = [];
+  // API_BASE normalized (may be empty)
+  if (API_BASE) {
+    candidates.push(`${API_BASE}/token/refresh/`);
+    candidates.push(`${API_BASE}/api/token/refresh/`);
+  } else {
+    // relative attempts
+    candidates.push(`/token/refresh/`);
+    candidates.push(`/api/token/refresh/`);
+  }
+
+  let lastErr = null;
+  for (const url of candidates) {
+    try {
+      const resp = await axios.post(url, { refresh: refreshToken });
+      return resp.data; // expects { access: "...", refresh?: "..." }
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr || new Error("Refresh failed");
 }
 
 api.interceptors.response.use(
@@ -146,7 +92,7 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // If no response or not 401 -> reject
+    // If no response or status not 401 -> reject
     if (!error.response) return Promise.reject(error);
     if (error.response.status !== 401) return Promise.reject(error);
 
@@ -154,7 +100,7 @@ api.interceptors.response.use(
     if (originalRequest._retry) return Promise.reject(error);
     originalRequest._retry = true;
 
-    // If already refreshing, queue this request
+    // Queue if already refreshing
     if (isRefreshing) {
       return new Promise((resolve, reject) => {
         failedQueue.push({
@@ -171,27 +117,23 @@ api.interceptors.response.use(
     isRefreshing = true;
 
     try {
-      const data = await requestRefresh(); // { access: "...", refresh?: "..." }
+      const data = await requestRefresh(); // { access, refresh? }
       const newAccess = data.access;
       const newRefresh = data.refresh;
 
       if (!newAccess) throw new Error("Refresh response did not include an access token");
 
-      // persist tokens
       setAccess(newAccess);
       if (newRefresh) setRefresh(newRefresh);
 
-      // update default header and retry queued requests
       api.defaults.headers.common["Authorization"] = `Bearer ${newAccess}`;
       processQueue(null, newAccess);
 
-      // retry original request with new access
       originalRequest.headers = originalRequest.headers || {};
       originalRequest.headers.Authorization = `Bearer ${newAccess}`;
       return api(originalRequest);
     } catch (err) {
       processQueue(err, null);
-      // refresh failed -> clear tokens (forces login)
       clearTokens();
       return Promise.reject(err);
     } finally {
@@ -201,4 +143,3 @@ api.interceptors.response.use(
 );
 
 export default api;
-
