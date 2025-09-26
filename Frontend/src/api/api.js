@@ -1,42 +1,58 @@
 // src/api.js
 import axios from "axios";
 
-const API_BASE = (import.meta.env.VITE_API_BASE || "http://localhost:8000/api").replace(/\/+$/, "");
+// --- API base detection ---
+// Support runtime config, VITE_API_BASE (preferred), and VITE_API_URL (fallback)
+const runtimeApi =
+  typeof window !== "undefined" && window.__RUNTIME_CONFIG__?.API_BASE
+    ? window.__RUNTIME_CONFIG__.API_BASE
+    : null;
 
+const envApiBase = import.meta.env.VITE_API_BASE || import.meta.env.VITE_API_URL || null;
+
+// Final API base (trim trailing slashes, fallback to localhost in dev)
+const API_BASE = (runtimeApi || envApiBase || "http://localhost:8000/api").replace(/\/+$/, "");
+
+// --- Axios instance ---
 const api = axios.create({
   baseURL: API_BASE,
   // optional: timeout: 15000,
 });
 
-// token helpers (use keys: "access" and "refresh")
+// --- Token helpers (use keys: "access" and "refresh") ---
 const getAccess = () => localStorage.getItem("access");
 const getRefresh = () => localStorage.getItem("refresh");
-const setAccess = (tok) => tok ? localStorage.setItem("access", tok) : null;
-const setRefresh = (tok) => tok ? localStorage.setItem("refresh", tok) : null;
+const setAccess = (tok) => (tok ? localStorage.setItem("access", tok) : null);
+const setRefresh = (tok) => (tok ? localStorage.setItem("refresh", tok) : null);
 const clearTokens = () => {
   localStorage.removeItem("access");
   localStorage.removeItem("refresh");
   localStorage.removeItem("user");
-  try { window.dispatchEvent(new Event("authChanged")); } catch (_) {}
+  try {
+    window.dispatchEvent(new Event("authChanged"));
+  } catch (_) {}
 };
 
-// init Authorization header
+// --- Initialize Authorization header if access token exists ---
 const initAccess = getAccess();
 if (initAccess) {
   api.defaults.headers.common["Authorization"] = `Bearer ${initAccess}`;
 }
 
-// attach access token to every request if present
-api.interceptors.request.use((config) => {
-  const access = getAccess();
-  if (access) {
-    config.headers = config.headers || {};
-    config.headers.Authorization = `Bearer ${access}`;
-  }
-  return config;
-}, (err) => Promise.reject(err));
+// --- Request interceptor: attach access token ---
+api.interceptors.request.use(
+  (config) => {
+    const access = getAccess();
+    if (access) {
+      config.headers = config.headers || {};
+      config.headers.Authorization = `Bearer ${access}`;
+    }
+    return config;
+  },
+  (err) => Promise.reject(err)
+);
 
-// Response interceptor + refresh-queue
+// --- Response interceptor: refresh tokens on 401 ---
 let isRefreshing = false;
 let failedQueue = [];
 
@@ -63,15 +79,12 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // No response or not 401 -> reject
     if (!error.response) return Promise.reject(error);
     if (error.response.status !== 401) return Promise.reject(error);
 
-    // protect against infinite loop
     if (originalRequest._retry) return Promise.reject(error);
     originalRequest._retry = true;
 
-    // If another refresh is in progress, queue this request
     if (isRefreshing) {
       return new Promise((resolve, reject) => {
         failedQueue.push({
@@ -88,21 +101,18 @@ api.interceptors.response.use(
     isRefreshing = true;
 
     try {
-      const data = await requestRefresh(); // expected: { access: "...", refresh?: "..." }
+      const data = await requestRefresh(); // expected: { access, refresh? }
       const newAccess = data.access;
       const newRefresh = data.refresh;
 
       if (!newAccess) throw new Error("Refresh response did not include an access token");
 
-      // persist tokens
       setAccess(newAccess);
       if (newRefresh) setRefresh(newRefresh);
 
-      // update defaults and resolve queue
       api.defaults.headers.common["Authorization"] = `Bearer ${newAccess}`;
       processQueue(null, newAccess);
 
-      // retry original request
       originalRequest.headers = originalRequest.headers || {};
       originalRequest.headers.Authorization = `Bearer ${newAccess}`;
       return api(originalRequest);
