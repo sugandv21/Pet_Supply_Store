@@ -93,7 +93,7 @@ CORS_ALLOWED_ORIGINS = [
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-CORS_ALLOW_ALL_ORIGINS = True
+# CORS_ALLOW_ALL_ORIGINS = True
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -148,7 +148,15 @@ MEDIA_ROOT = BASE_DIR / "media"
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+# CSRF
+CSRF_TRUSTED_ORIGINS = [
+    "https://pet-supply-store-ss.vercel.app",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
 
+CSRF_COOKIE_SECURE = False  # True for production HTTPS
+SESSION_COOKIE_SECURE = False  # True for production HTTPS
 
 from corsheaders.defaults import default_headers
 CORS_ALLOW_HEADERS = list(default_headers) + [
@@ -183,6 +191,7 @@ SIMPLE_JWT = {
     "AUTH_HEADER_TYPES": ("Bearer",),
     "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
 }
+
 
 
 
