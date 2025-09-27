@@ -62,7 +62,7 @@
 // }
 // src/pages/HomePage.jsx
 import React, { useEffect, useState } from "react";
-import api from "../lib/api";
+import api from "../api/api";
 
 import Slider from "../components/Slider";
 import PromoBanner from "../components/PromoBanner";
@@ -105,4 +105,5 @@ export default function HomePage() {
     </div>
   );
 }
+
 
