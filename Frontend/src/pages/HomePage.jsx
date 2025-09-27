@@ -32,6 +32,9 @@ export default function HomePage() {
     <div className="w-full">
       <PromoCarousel interval={2000} />
       <Slider />
+      <div className="text-center my-4">    
+      <h2 className="text-3xl text-center font-semibold">Top Rated Calming Products</h2>
+      </div>
       <TopRatedSlider products={products} />
       <PromoBanner />
       <OfferStrip />
@@ -39,3 +42,4 @@ export default function HomePage() {
     </div>
   );
 }
+
