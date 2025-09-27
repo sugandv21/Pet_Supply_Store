@@ -29,8 +29,8 @@ SECRET_KEY = 'django-insecure-2^a%qw1qw6_(q3!c@siw1#30k_jg*dkfts2t&%cho_@c=ewamw
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
-
+# ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ["pet-supply-store-ss.onrender.com", "petsupplystore.netlify.app"]
 
 # Application definition
 
@@ -192,6 +192,7 @@ SIMPLE_JWT = {
     "AUTH_HEADER_TYPES": ("Bearer",),
     "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
 }
+
 
 
 
