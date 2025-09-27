@@ -63,7 +63,7 @@ export default function PromoHero2({ apiEndpoint = "/carousal-banner2/" }) {
   };
 
   return (
-    <section className="w-full max-w-full mx-auto px-4 py-6">
+    <section className="w-full max-w-full mx-auto px-4 py-8">
       {/* local CSS for slanted right panel and exact visuals */}
       <style>{`
         /* Right panel has a slanted left edge */

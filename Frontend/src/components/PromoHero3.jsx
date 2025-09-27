@@ -52,7 +52,7 @@ export default function PromoHero3({ apiEndpoint = "/carousal-banner3/" }) {
   };
 
   return (
-    <section className="w-full mx-auto my-6 px-4">
+    <section className="w-full max-w-full mx-auto px-4 py-6">
       {/* small local CSS for diamond/tags */}
       <style>{`
         /* diamond: square rotated 45deg with inner text rotated back */
@@ -90,7 +90,7 @@ export default function PromoHero3({ apiEndpoint = "/carousal-banner3/" }) {
             style={{ background: bg_color }}
           >
             {/* this wrapper provides the visual area for absolute elements */}
-            <div className="w-full h-64 md:h-[360px] relative">
+            <div className="w-full h-64 md:h-[370px] relative">
               {/* diamond tag - top-left-ish absolute */}
               <div className="absolute left-52 top-6">
                 <div
@@ -141,7 +141,7 @@ export default function PromoHero3({ apiEndpoint = "/carousal-banner3/" }) {
 
           {/* RIGHT: big image */}
           <div className="md:w-1/2 w-full flex items-center justify-center bg-white">
-            <div className="w-full h-64 md:h-[360px] flex items-center justify-center relative">
+            <div className="w-full h-64 md:h-[370px] flex items-center justify-center relative">
               {right_image_url ? (
                 <img
                   src={right_image_url}

@@ -115,7 +115,7 @@ export default function TopRatedSlider({ products }) {
         {currentIndex > 0 && (
           <button
             onClick={prevSlide}
-            className="absolute left-0 top-1/2 -translate-y-1/2 bg-white p-2 rounded-full shadow hover:bg-gray-100"
+            className="absolute left-0 top-1/2 -translate-y-1/2 bg-blue-700 text-white  p-2 rounded-full shadow hover:bg-gray-100"
           >
             <ChevronLeft />
           </button>
@@ -125,7 +125,7 @@ export default function TopRatedSlider({ products }) {
         {currentIndex < maxIndex && (
           <button
             onClick={nextSlide}
-            className="absolute right-0 top-1/2 -translate-y-1/2 bg-white p-2 rounded-full shadow hover:bg-gray-100"
+            className="absolute right-0 top-1/2 -translate-y-1/2 bg-blue-700 text-white p-2 rounded-full shadow hover:bg-gray-100"
           >
             <ChevronRight />
           </button>

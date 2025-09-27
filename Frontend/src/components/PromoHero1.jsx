@@ -1,15 +1,15 @@
-// src/components/PromoHero.jsx
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../api/api";
 
-// replace these with your actual asset paths
+import { FaBolt } from "react-icons/fa"; // ⚡ lightning bolt
 import CloudPng from "../assets/cloud.png";
 import UmbrellaIconPng from "../assets/umbrella-icon.png";
 
 export default function PromoHero1({ apiEndpoint = "/carousal-banner1/" }) {
   const [banner, setBanner] = useState(null);
   const [drops, setDrops] = useState([]);
+  const [showLightning, setShowLightning] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -39,16 +39,21 @@ export default function PromoHero1({ apiEndpoint = "/carousal-banner1/" }) {
     setDrops(arr);
   }, []);
 
+  useEffect(() => {
+    // randomly show lightning icon
+    const interval = setInterval(() => {
+      if (Math.random() < 0.4) {
+        setShowLightning(true);
+        setTimeout(() => setShowLightning(false), 600); // visible for 0.6s
+      }
+    }, 4000);
+    return () => clearInterval(interval);
+  }, []);
+
   if (!banner) return null;
 
-  const {
-    title,
-    subtitle,
-    button_text = "Shop Now",
-    link = "#",
-    image_url,
-    right_image_url,
-  } = banner;
+  const { title, subtitle, button_text = "Shop Now", link = "#", image_url, right_image_url } =
+    banner;
 
   const renderButton = () => {
     if (!link) {
@@ -81,8 +86,7 @@ export default function PromoHero1({ apiEndpoint = "/carousal-banner1/" }) {
   };
 
   return (
-    <section className="w-full mx-auto my-8 px-4">
-      {/* inline rain CSS */}
+    <section className="w-full mx-auto my-8 px-4 relative overflow-hidden">
       <style>{`
         @keyframes slant-fall {
           0%   { transform: translate(40px, -50px) rotate(25deg); opacity: 0; }
@@ -111,7 +115,7 @@ export default function PromoHero1({ apiEndpoint = "/carousal-banner1/" }) {
       <div className="flex flex-col md:flex-row items-stretch rounded-2xl overflow-hidden relative">
         {/* Left image (60%) */}
         <div className="md:w-3/5 w-full">
-          <div className="w-full h-56 md:h-96 bg-gray-100">
+          <div className="w-full h-56 md:h-[360px] bg-gray-100">
             <img
               src={image_url}
               alt={title || "promo"}
@@ -122,17 +126,24 @@ export default function PromoHero1({ apiEndpoint = "/carousal-banner1/" }) {
 
         {/* Right panel (40%) */}
         <div className="md:w-2/5 w-full bg-[#98FB98] relative p-6 flex flex-col justify-between">
-          {/* decorative cloud */}
+          {/* cloud */}
           <img
             src={CloudPng}
             alt="cloud"
-            className="hidden md:block absolute left-16 top-16 w-20 pointer-events-none"
+            className="hidden md:block absolute left-16 top-12 w-24 pointer-events-none"
           />
+
+          {/* lightning bolt */}
+          {showLightning && (
+            <FaBolt
+              className="absolute left-24 top-28 text-yellow-300 drop-shadow-lg animate-pulse"
+              size={48}
+            />
+          )}
 
           {/* content */}
           <div className="relative z-10">
             <div className="flex items-start gap-4">
-              {/* umbrella icon in rounded white circle */}
               <div className="absolute top-44 left-64 rounded-full bg-white p-3 shadow-md inline-flex items-center justify-center flex-shrink-0">
                 <img src={UmbrellaIconPng} alt="umbrella icon" className="w-8 h-8" />
               </div>
@@ -151,7 +162,6 @@ export default function PromoHero1({ apiEndpoint = "/carousal-banner1/" }) {
             </div>
           </div>
 
-          {/* right side umbrella illustration */}
           {right_image_url && (
             <img
               src={right_image_url}
@@ -160,7 +170,6 @@ export default function PromoHero1({ apiEndpoint = "/carousal-banner1/" }) {
             />
           )}
 
-          {/* CTA */}
           <div className="mt-6 text-center">{renderButton()}</div>
 
           {/* Rain animation container */}
