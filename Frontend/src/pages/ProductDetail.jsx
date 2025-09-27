@@ -1,10 +1,10 @@
-// src/pages/ProductDetail.jsx
 import React, { useEffect, useState } from "react";
 import { Link, useParams, useNavigate, useLocation } from "react-router-dom";
 import api from "../api/api";
 import sampleImg from "../assets/productdes.png";
 import { useCart } from "../context/CartContext";
 import YouMightLike from "../components/YouMightLike";
+import ProductReviews from "../components/ProductReviews";
 
 export default function ProductDetail() {
   const { id } = useParams();
@@ -12,40 +12,38 @@ export default function ProductDetail() {
   const location = useLocation();
 
   const [product, setProduct] = useState(null);
-  const [products, setProducts] = useState([]); // <-- products list for YouMightLike
+  const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [error, setError] = useState(null);
 
-  // gallery state
   const [mainSrc, setMainSrc] = useState(sampleImg);
   const [thumbs, setThumbs] = useState([]);
   const [activeThumb, setActiveThumb] = useState(0);
 
-  // UI state
   const [selectedSize, setSelectedSize] = useState(null);
   const [qty, setQty] = useState(1);
-  const [addedMsg, setAddedMsg] = useState(""); // small success message
+  const [addedMsg, setAddedMsg] = useState("");
 
-  // auth state (derived from localStorage + listens to authChanged events)
   const [isAuthenticated, setIsAuthenticated] = useState(
     Boolean(localStorage.getItem("access") && localStorage.getItem("user"))
   );
 
-  // keep auth state in sync with global events (your login/register dispatches authChanged)
   useEffect(() => {
     const handler = () =>
-      setIsAuthenticated(Boolean(localStorage.getItem("access") && localStorage.getItem("user")));
+      setIsAuthenticated(
+        Boolean(localStorage.getItem("access") && localStorage.getItem("user"))
+      );
     window.addEventListener("authChanged", handler);
     return () => window.removeEventListener("authChanged", handler);
   }, []);
 
-  // cart context (expects add(productId, quantity) -> Promise)
   const { add } = useCart();
 
-  // Helper to format price
   const formatPrice = (v) =>
-    v == null ? "—" : Number(v).toLocaleString("en-IN", { maximumFractionDigits: 2 });
+    v == null
+      ? "—"
+      : Number(v).toLocaleString("en-IN", { maximumFractionDigits: 2 });
 
   // Fetch product detail
   useEffect(() => {
@@ -60,11 +58,12 @@ export default function ProductDetail() {
         const p = res.data;
         setProduct(p);
 
-        // build thumbs array: ensure at least 4 thumbnails exist
         const built = [];
         if (p.image) built.push(p.image);
         if (Array.isArray(p.related_products)) {
-          p.related_products.slice(0, 4).forEach((r) => r.image && built.push(r.image));
+          p.related_products
+            .slice(0, 4)
+            .forEach((r) => r.image && built.push(r.image));
         }
         while (built.length < 4) built.push(p.image || sampleImg);
 
@@ -72,14 +71,18 @@ export default function ProductDetail() {
         setMainSrc(p.image || sampleImg);
         setActiveThumb(0);
 
-        // preselect size from product quantity if available
         if (p.quantity_value && p.quantity_unit) {
           setSelectedSize(`${p.quantity_value}${p.quantity_unit}`);
         }
       })
       .catch((err) => {
         console.error("Failed loading product", err);
-        if (!cancelled) setError(err?.response?.data?.detail || err.message || "Failed to load product");
+        if (!cancelled)
+          setError(
+            err?.response?.data?.detail ||
+              err.message ||
+              "Failed to load product"
+          );
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -88,7 +91,6 @@ export default function ProductDetail() {
     return () => (cancelled = true);
   }, [id]);
 
-  // Fetch dog products for YouMightLike (and other local uses)
   useEffect(() => {
     let cancelled = false;
     setLoadingProducts(true);
@@ -96,7 +98,9 @@ export default function ProductDetail() {
       .get("/pet-products/", { params: { pet_type: "dog" } })
       .then((res) => {
         if (cancelled) return;
-        const data = Array.isArray(res.data) ? res.data : res.data?.results ?? [];
+        const data = Array.isArray(res.data)
+          ? res.data
+          : res.data?.results ?? [];
         setProducts(data);
       })
       .catch((err) => {
@@ -111,7 +115,8 @@ export default function ProductDetail() {
 
   if (loading) return <div className="p-6">Loading…</div>;
   if (error) return <div className="p-6 text-red-600">Error: {error}</div>;
-  if (!product) return <div className="p-6 text-red-600">Product not found</div>;
+  if (!product)
+    return <div className="p-6 text-red-600">Product not found</div>;
 
   const showTransient = (msg) => {
     setAddedMsg(msg);
@@ -129,18 +134,14 @@ export default function ProductDetail() {
   };
 
   const handleBuyNow = async () => {
-    // Require login for Buy Now
     if (!isAuthenticated) {
-      // redirect to account/login page and include next so user can be returned after login
       navigate("/login", { state: { next: location.pathname } });
       return;
     }
 
     try {
-      // keep adding to cart if you want global cart to reflect it
       await add(product.id, qty);
 
-      // pass a buyNow flag and a small product snapshot so Checkout can render immediately
       const productSnapshot = {
         id: product.id,
         title: product.title,
@@ -175,13 +176,15 @@ export default function ProductDetail() {
         <span className="font-medium">{product.title}</span>
       </div>
 
-      {/* Top section: left gallery | right details */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-        {/* LEFT: Main image, dots, thumbnails */}
         <div>
           <div className="flex justify-center">
             <div className="w-[360px] md:w-[420px] bg-white rounded border p-6 flex items-center justify-center">
-              <img src={mainSrc || sampleImg} alt={product.title} className="max-h-[360px] object-contain" />
+              <img
+                src={mainSrc || sampleImg}
+                alt={product.title}
+                className="max-h-[360px] object-contain"
+              />
             </div>
           </div>
 
@@ -194,7 +197,9 @@ export default function ProductDetail() {
                   setActiveThumb(i);
                   setMainSrc(thumbs[i]);
                 }}
-                className={`h-2 w-2 rounded-full ${activeThumb === i ? "bg-blue-600" : "bg-gray-300"}`}
+                className={`h-2 w-2 rounded-full ${
+                  activeThumb === i ? "bg-blue-600" : "bg-gray-300"
+                }`}
                 aria-label={`dot-${i}`}
               />
             ))}
@@ -209,9 +214,19 @@ export default function ProductDetail() {
                   setActiveThumb(i);
                   setMainSrc(t);
                 }}
-                className={`h-24 w-24 flex items-center justify-center rounded border p-1 ${activeThumb === i ? "ring-2 ring-blue-500" : ""}`}
+                className={`h-24 w-24 flex items-center justify-center rounded border p-1 ${
+                  activeThumb === i ? "ring-2 ring-blue-500" : ""
+                }`}
               >
-                {t ? <img src={t} alt={`thumb-${i}`} className="h-full w-full object-contain" /> : <div className="h-full w-full bg-gray-50" />}
+                {t ? (
+                  <img
+                    src={t}
+                    alt={`thumb-${i}`}
+                    className="h-full w-full object-contain"
+                  />
+                ) : (
+                  <div className="h-full w-full bg-gray-50" />
+                )}
               </button>
             ))}
           </div>
@@ -219,7 +234,9 @@ export default function ProductDetail() {
 
         {/* RIGHT: Details */}
         <div>
-          <h1 className="text-2xl lg:text-3xl font-bold leading-tight">{product.title}</h1>
+          <h1 className="text-2xl lg:text-3xl font-bold leading-tight">
+            {product.title}
+          </h1>
 
           <div className="mt-4 text-sm text-gray-700 space-y-2">
             <div>
@@ -237,7 +254,9 @@ export default function ProductDetail() {
           <div className="mt-4 text-sm text-gray-700">
             {product.description ? (
               <p className="text-sm leading-relaxed whitespace-pre-line">
-                {product.description.length > 450 ? `${product.description.slice(0, 450)}...` : product.description}
+                {product.description.length > 450
+                  ? `${product.description.slice(0, 450)}...`
+                  : product.description}
               </p>
             ) : (
               <p className="text-sm text-gray-500">No description available.</p>
@@ -247,10 +266,20 @@ export default function ProductDetail() {
             <ul className="mt-3 list-disc list-inside text-xs text-gray-600 space-y-1">
               <li>MADE IN CANADA</li>
               <li>HEALTHY GRAINS: Quinoa, oats & barley</li>
-              <li>Importer name: Maple pets international pvt ltd</li>
-              <li>Per gram price: 0.84₹</li>
-              <li>Manufactured by: Omni pet nutrition BC, CANADA</li>
             </ul>
+          </div>
+
+          <div className="mt-2 text-sm text-gray-700">
+            <p className="text-sm text-gray-500">
+              Importer name: Maple pets international pvt ltd
+            </p>
+            <p className="text-sm text-gray-500">
+              Importer address: 792, Dwarkapuri, Indore (M.P)
+            </p>
+            <p className="text-sm text-gray-500">Per gram price: 0.849₹</p>
+            <p className="text-sm text-gray-500">
+              Manufactured by: Omni pet nutrition BC, CANADA
+            </p>
           </div>
 
           {/* Price / Size / Qty / Buttons */}
@@ -258,18 +287,35 @@ export default function ProductDetail() {
             {/* Price + size */}
             <div className="flex items-start gap-6">
               <div>
-                <div className="text-xs text-gray-500">MRP:</div>
-                <div className="text-2xl font-bold text-blue-600">₹ {formatPrice(product.price)}</div>
-                {product.mrp && <div className="text-sm text-gray-400 line-through">₹ {formatPrice(product.mrp)}</div>}
-                <div className="text-xs text-gray-500 mt-1">Inclusive of all taxes</div>
-                <div className="ml-auto space-y-2">
-                  <div className="text-sm text-gray-600 mb-1">Available Size:</div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs text-blue-600">MRP:</span>
+                  <span className="text-xs font-bold text-blue-600">
+                    ₹ {formatPrice(product.price)}
+                  </span>
+                  {product.mrp && (
+                    <span className="text-sm text-blue-600 line-through">
+                      ₹ {formatPrice(product.mrp)}
+                    </span>
+                  )}
+                  <span className="text-xs text-blue-600">
+                    Inclusive of all taxes
+                  </span>
+                </div>
+
+                <div className="ml-auto flex items-center gap-3">
+                  <span className="text-sm text-blue-600 ">
+                    Available Size:
+                  </span>
                   <div className="flex items-center gap-2">
                     {["1kg", "2kg"].map((s) => (
                       <button
                         key={s}
                         onClick={() => setSelectedSize(s)}
-                        className={`px-3 py-1 rounded text-sm border ${selectedSize === s ? "bg-blue-600 text-white" : "bg-white text-gray-700"}`}
+                        className={`px-3 py-1 rounded text-sm border ${
+                          selectedSize === s
+                            ? "bg-blue-600 text-white"
+                            : "bg-white text-gray-700"
+                        }`}
                       >
                         {s}
                       </button>
@@ -280,38 +326,60 @@ export default function ProductDetail() {
             </div>
 
             {/* Quantity row */}
-            <div className="flex items-center gap-6">
-              <div>
-                <div className="text-sm text-gray-600">Quantity:</div>
-                <div className="mt-2 flex items-center gap-2">
-                  <button onClick={() => setQty((q) => Math.max(1, q - 1))} className="h-8 w-8 rounded border flex items-center justify-center text-lg" aria-label="decrease">−</button>
-                  <div className="min-w-[44px] text-center">{qty}</div>
-                  <button onClick={() => setQty((q) => q + 1)} className="h-8 w-8 rounded border flex items-center justify-center text-lg" aria-label="increase">+</button>
-                </div>
-              </div>
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-gray-600">Quantity:</span>
+              <div className="flex border rounded overflow-hidden w-[120px]">
+  <button
+    onClick={() => setQty((q) => Math.max(1, q - 1))}
+    className="flex-1 h-10 flex items-center justify-center text-lg border-r"
+    aria-label="decrease"
+  >
+    −
+  </button>
+  <div className="flex-1 h-10 flex items-center justify-center text-sm">
+    {qty}
+  </div>
+  <button
+    onClick={() => setQty((q) => q + 1)}
+    className="flex-1 h-10 flex items-center justify-center text-lg border-l"
+    aria-label="increase"
+  >
+    +
+  </button>
+</div>
+
             </div>
 
             {/* Buttons row: large pills, responsive (stack on small screens) */}
             <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-start">
-              <button onClick={handleAddToCart} className="w-full sm:w-auto flex-1 sm:flex-none px-10 py-3 rounded-full bg-blue-600 text-white text-sm font-semibold shadow-md hover:bg-blue-700 transition">
+              <button
+                onClick={handleAddToCart}
+                className="w-full sm:w-auto flex-1 sm:flex-none px-10 py-3 rounded-full bg-blue-600 text-white text-sm font-semibold shadow-md hover:bg-blue-700 transition"
+              >
                 Add to cart
               </button>
 
               <div className="flex items-center gap-3">
-                <button onClick={handleBuyNow} className="w-full sm:w-auto flex-1 sm:flex-none px-8 py-3 rounded-full bg-black text-white text-sm font-semibold border-2 border-black/10 hover:opacity-95 transition">
+                <button
+                  onClick={handleBuyNow}
+                  className="w-full sm:w-auto flex-1 sm:flex-none px-8 py-3 rounded-full bg-black text-white text-sm font-semibold border-2 border-black/10 hover:opacity-95 transition"
+                >
                   Buy Now
                 </button>
 
-                {/* tiny hint shown when not authenticated */}
                 {!isAuthenticated && (
                   <div className="text-xs text-gray-500 ml-2 hidden sm:block">
-                    You must be logged in to buy
+                    
                   </div>
                 )}
               </div>
 
               {/* small status message (keeps inline on wide screens) */}
-              {addedMsg && <div className="mt-2 sm:mt-0 sm:ml-4 text-sm text-green-600 font-medium">{addedMsg}</div>}
+              {addedMsg && (
+                <div className="mt-2 sm:mt-0 sm:ml-4 text-sm text-green-600 font-medium">
+                  {addedMsg}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -330,45 +398,74 @@ export default function ProductDetail() {
           <div className="space-y-5 text-sm text-gray-700">
             <div>
               <h3 className="font-semibold">Fresh Dog Food</h3>
-              <p className="mt-1">Small Breed Dog Food, Turkey, Chickpea & Sweet Potato — Quality, Canadian sources of protein, including fresh turkey, turkey meal and eggs, are at the foundation of our recipe.</p>
+              <p className="mt-1">
+                Small Breed Dog Food, Turkey, Chickpea & Sweet Potato — Quality,
+                Canadian sources of protein, including fresh turkey, turkey meal
+                and eggs, are at the foundation of our recipe.
+              </p>
             </div>
 
             <div>
-              <h3 className="font-semibold">Flaxseed, chia seed, salmon oil for healthy skin & coat</h3>
-              <p className="mt-1">This powerful combination of salmon oil, chia & flax ensures a diet rich in omega fatty acids to help your dog maintain a healthy skin & coat.</p>
+              <h3 className="font-semibold">
+                Flaxseed, chia seed, salmon oil for healthy skin & coat
+              </h3>
+              <p className="mt-1">
+                This powerful combination of salmon oil, chia & flax ensures a
+                diet rich in omega fatty acids to help your dog maintain a
+                healthy skin & coat.
+              </p>
             </div>
 
             <div>
-              <h3 className="font-semibold">Prebiotics & probiotics for a healthy digestive system</h3>
-              <p className="mt-1">Prebiotics & probiotics along with ingredients rich in dietary fiber such as sweet potatoes, black beans, oats and barley, help support a healthy digestive system.</p>
+              <h3 className="font-semibold">
+                Prebiotics & probiotics for a healthy digestive system
+              </h3>
+              <p className="mt-1">
+                Prebiotics & probiotics along with ingredients rich in dietary
+                fiber such as sweet potatoes, black beans, oats and barley, help
+                support a healthy digestive system.
+              </p>
             </div>
 
             <div>
-              <h3 className="font-semibold">Rich in antioxidants to support a healthy immune system</h3>
-              <p className="mt-1">Berries and carrots, loaded with antioxidants and phytonutrients, along with vitamins and minerals help support a healthy immune system.</p>
+              <h3 className="font-semibold">
+                Rich in antioxidants to support a healthy immune system
+              </h3>
+              <p className="mt-1">
+                Berries and carrots, loaded with antioxidants and
+                phytonutrients, along with vitamins and minerals help support a
+                healthy immune system.
+              </p>
             </div>
 
-            <p className="mt-2 text-sm text-gray-600">{product.description || "Zoe Small Breed Dog Food — This dry dog food is made with fresh deboned turkey..."}</p>
+            <p className="mt-2 text-sm text-gray-600">
+              {product.description ||
+                "Zoe Small Breed Dog Food — This dry dog food is made with fresh deboned turkey..."}
+            </p>
           </div>
         </div>
 
         {/* right: image panel */}
         <div className="flex items-start">
           <div className="w-full rounded border overflow-hidden bg-white">
-            <img src={product.right_image || sampleImg} alt="promo" className="h-full w-full object-cover max-h-[420px]" />
+            <img
+              src={product.right_image || sampleImg}
+              alt="promo"
+              className="h-full w-full object-cover max-h-[420px]"
+            />
           </div>
         </div>
       </div>
+      <div className="mt-8">
+          <ProductReviews productId={product.id} />
+      </div>
 
-      {/* YouMightLike uses the products array fetched above */}
       <div className="mt-8">
         <YouMightLike products={products} />
       </div>
     </div>
   );
 }
-
-
 
 // // src/pages/ProductDetail.jsx
 // import React, { useEffect, useState } from "react";
