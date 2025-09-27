@@ -1,47 +1,17 @@
-// src/pages/Contact.jsx
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { BsTruck, BsChatText } from "react-icons/bs";
 import payment from "../assets/conPay.png";
 import contactBox from "../assets/contactbox.png";
 import contactreturn from "../assets/contactreturn.png";
-// axios import left in case you re-enable the form
+
 import axios from "axios";
 
 export default function Contact() {
-  // contact form state is kept commented for now
-  // const [form, setForm] = useState({
-  //   name: "",
-  //   email: "",
-  //   phone: "",
-  //   subject: "",
-  //   message: "",
-  // });
-  // const [sending, setSending] = useState(false);
-  // const [sentOk, setSentOk] = useState(null);
+  
   const API_ROOT = import.meta.env.VITE_API_BASE?.replace(/\/+$/, "") || "";
 
-  // const handleChange = (e) => {
-  //   const { name, value } = e.target;
-  //   setForm((f) => ({ ...f, [name]: value }));
-  // };
-
-  // const submit = async (e) => {
-  //   e.preventDefault();
-  //   setSending(true);
-  //   setSentOk(null);
-  //   try {
-  //     await axios.post(`${API_ROOT}/api/contact/messages/`, form);
-  //     setSentOk(true);
-  //     setForm({ name: "", email: "", phone: "", subject: "", message: "" });
-  //   } catch (err) {
-  //     console.error("Contact submit failed", err);
-  //     setSentOk(false);
-  //   } finally {
-  //     setSending(false);
-  //     setTimeout(() => setSentOk(null), 4000);
-  //   }
-  // };
+  
 
   const QuickCard = ({ title, subtitle, icon, to = "#" }) => (
     <Link to={to} className="group block rounded-xl border p-6 bg-white hover:shadow-md transition">
@@ -95,7 +65,7 @@ export default function Contact() {
         </div>
 
         <div>
-          <Link to="/signin" className="rounded-md bg-blue-600 text-white px-4 py-2 font-semibold hover:bg-blue-700">Sign in</Link>
+          <Link to="/login" className="rounded-md bg-blue-600 text-white px-4 py-2 font-semibold hover:bg-blue-700">Sign in</Link>
         </div>
       </div>
 
@@ -205,3 +175,4 @@ export default function Contact() {
           </form>
 
         </div> */}
+
