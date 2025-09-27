@@ -23,13 +23,14 @@ class AccountViewSet(viewsets.GenericViewSet):
 
     @action(detail=False, methods=["post"], url_path="register", permission_classes=[AllowAny])
     def register(self, request):
-        serializer = RegisterSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        user = serializer.save()
-        return Response(
-            UserSerializer(user, context={"request": request}).data,
-            status=status.HTTP_201_CREATED,
-        )
+        try:
+            serializer = RegisterSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            user = serializer.save()
+            return Response(UserSerializer(user).data, status=201)
+        except Exception:
+            logger.exception("Register failed")
+            raise
 
     @action(detail=False, methods=["get"], url_path="me", permission_classes=[IsAuthenticated])
     def me(self, request):
@@ -38,3 +39,4 @@ class AccountViewSet(viewsets.GenericViewSet):
     @action(detail=False, methods=["post"], url_path="logout", permission_classes=[IsAuthenticated])
     def logout(self, request):
         return Response({"detail": "Logged out"}, status=status.HTTP_200_OK)
+
