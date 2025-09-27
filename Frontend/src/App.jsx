@@ -11,7 +11,7 @@ import ConsultNow from "./pages/ConsultNow";
 import ProductDetail from "./pages/ProductDetail";
 import PetProducts from "./pages/PetProducts";
 import Cart from "./pages/Cart";
-import Checkout from "./pages/checkout";
+import Checkout from "./pages/Checkout";
 import OrderComplete from "./pages/OrderComplete";
 import Contact from "./pages/Contact";
 import Blog from "./FPages/Blog";
