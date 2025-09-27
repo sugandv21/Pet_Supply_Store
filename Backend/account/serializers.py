@@ -123,7 +123,11 @@ class RegisterSerializer(serializers.ModelSerializer):
                 f"Hi {user.username},\n\nThanks for signing up."
             )
             if from_email:
-                send_mail(subject, message, from_email, [user.email], fail_silently=True)
+                send_mail(
+                    subject, message, from_email, [user.email],
+                    fail_silently=True,
+                    timeout=5  # ensures it won’t block forever
+                )
         except Exception:
             pass
 
@@ -134,4 +138,5 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ("id", "username", "email", "first_name", "last_name")
+
 
