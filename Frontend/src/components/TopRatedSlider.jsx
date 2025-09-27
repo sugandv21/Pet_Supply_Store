@@ -1,4 +1,3 @@
-// src/components/TopRatedSlider.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -6,44 +5,37 @@ import api from "../api/api";
 
 export default function TopRatedSlider({ products = [] }) {
   const [catCategory, setCatCategory] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
   const [currentIndex, setCurrentIndex] = useState(0);
-  const itemsPerPage = 4;
-
   const navigate = useNavigate();
 
-  // Fetch cat category only
   useEffect(() => {
     const loadCategory = async () => {
-      setLoading(true);
       try {
         const res = await api.get("/pet-categories/", { params: { pet_type: "cat" } });
         const data = Array.isArray(res.data) ? res.data : res.data?.results ?? [];
         if (data.length) setCatCategory(data[0]);
       } catch (err) {
         console.error("❌ Failed to fetch cat category", err);
-        setError("Failed to load category");
-      } finally {
-        setLoading(false);
       }
     };
     loadCategory();
   }, []);
 
-  const maxIndex = Math.max(0, products.length - itemsPerPage);
+  // Ensure products have an ID
+  const dogProducts = products
+    .filter((p) => p?.id != null) // only include products with an id
+    .filter((p) => (p.id >= 10 && p.id <= 13) || p.id === 14);
+
+  const itemsPerPage = 4;
+  const maxIndex = Math.max(0, dogProducts.length - itemsPerPage);
 
   const nextSlide = () => setCurrentIndex((prev) => Math.min(prev + itemsPerPage, maxIndex));
   const prevSlide = () => setCurrentIndex((prev) => Math.max(prev - itemsPerPage, 0));
 
-  if (loading) return <div className="p-6 text-center">Loading Top Rated…</div>;
-  if (error) return <div className="p-6 text-center text-red-600">{error}</div>;
-
   return (
-    <div className="grid grid-cols-5 gap-6 py-4 px-4 md:px-20">
+    <div className="grid grid-cols-5 gap-8 py-4 px-20">
       {/* Left side - cat category */}
-      <div className="col-span-1 flex flex-col justify-center rounded-lg px-2 md:px-4">
+      <div className="col-span-1 flex flex-col justify-center rounded-lg px-4">
         {catCategory ? (
           <>
             <img
@@ -52,12 +44,10 @@ export default function TopRatedSlider({ products = [] }) {
               className="w-full h-52 object-cover rounded-lg mb-2"
             />
             <h2 className="text-lg font-semibold">{catCategory.title}</h2>
-            {catCategory.subtitle && (
-              <p className="text-sm text-gray-600">{catCategory.subtitle}</p>
-            )}
+            <p className="text-sm text-gray-600">{catCategory.subtitle}</p>
           </>
         ) : (
-          <p>Loading category...</p>
+          <p>Loading...</p>
         )}
       </div>
 
@@ -67,25 +57,24 @@ export default function TopRatedSlider({ products = [] }) {
           className="flex transition-transform duration-500 ease-in-out"
           style={{
             transform: `translateX(-${currentIndex * (100 / itemsPerPage)}%)`,
-            width: `${products.length * (100 / itemsPerPage)}%`,
+            width: `${dogProducts.length * (100 / itemsPerPage)}%`,
           }}
         >
-          {products.map((product) => {
+          {dogProducts.map((product) => {
             const rating = Math.round(Number(product.rating) || 0);
             return (
               <div key={product.id} className="w-1/4 px-2">
                 <div
-                  className="bg-white border rounded-lg p-2 shadow cursor-pointer hover:shadow-md transition h-60"
+                  className="bg-white border rounded-lg p-2 shadow cursor-pointer hover:shadow-md transition w-60 h-60"
                   onClick={() => navigate(`/product/${product.id}`)}
                 >
                   <img
                     src={product.image || "/placeholder.png"}
-                    alt={product.title || "product"}
+                    alt={product.title || "Product"}
                     className="w-full h-32 object-cover rounded"
                   />
-                  <h3 className="mt-2 text-sm font-semibold">{product.title}</h3>
+                  <h3 className="mt-2 text-sm font-semibold">{product.title || "Untitled"}</h3>
 
-                  {/* Rating */}
                   <div className="flex items-center mt-1">
                     {Array.from({ length: 5 }).map((_, i) => (
                       <svg
@@ -110,21 +99,18 @@ export default function TopRatedSlider({ products = [] }) {
           })}
         </div>
 
-        {/* Left Arrow */}
         {currentIndex > 0 && (
           <button
             onClick={prevSlide}
-            className="absolute left-0 top-1/2 -translate-y-1/2 bg-blue-700 text-white p-2 rounded-full shadow hover:bg-blue-600"
+            className="absolute left-0 top-1/2 -translate-y-1/2 bg-blue-700 text-white p-2 rounded-full shadow hover:bg-gray-100"
           >
             <ChevronLeft />
           </button>
         )}
-
-        {/* Right Arrow */}
         {currentIndex < maxIndex && (
           <button
             onClick={nextSlide}
-            className="absolute right-0 top-1/2 -translate-y-1/2 bg-blue-700 text-white p-2 rounded-full shadow hover:bg-blue-600"
+            className="absolute right-0 top-1/2 -translate-y-1/2 bg-blue-700 text-white p-2 rounded-full shadow hover:bg-gray-100"
           >
             <ChevronRight />
           </button>
