@@ -78,7 +78,7 @@ export default function Footer() {
             <h3 className="font-bold">Follow:</h3>
             <div className="flex gap-3">
               <a
-                href="https://www.facebook.com/yourpage"
+                href="https://www.facebook.com"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -86,7 +86,7 @@ export default function Footer() {
               </a>
               
               <a
-                href="https://www.instagram.com/yourprofile"
+                href="https://www.instagram.com"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -94,7 +94,7 @@ export default function Footer() {
               </a>
               
               <a
-                href="https://www.youtube.com/yourchannel"
+                href="https://www.youtube.com"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -102,7 +102,7 @@ export default function Footer() {
               </a>
               
               <a
-                href="https://wa.me/yourwhatsappnumber"
+                href="https://wa.me/6382603079"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -134,4 +134,5 @@ export default function Footer() {
     </footer>
   );
 }
+
 
