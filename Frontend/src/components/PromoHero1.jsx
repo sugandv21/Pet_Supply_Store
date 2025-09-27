@@ -144,11 +144,11 @@ export default function PromoHero1({ apiEndpoint = "/carousal-banner1/" }) {
           {/* content */}
           <div className="relative z-10">
             <div className="flex items-start gap-4">
-              <div className="absolute top-44 left-64 rounded-full bg-white p-3 shadow-md inline-flex items-center justify-center flex-shrink-0">
+              <div className="absolute top-40 left-64 rounded-full bg-white p-3 shadow-md inline-flex items-center justify-center flex-shrink-0">
                 <img src={UmbrellaIconPng} alt="umbrella icon" className="w-8 h-8" />
               </div>
 
-              <div className="absolute top-60 left-60 text-center">
+              <div className="absolute top-56 left-60 text-center">
                 <p>100 %</p>
                 <p>water proof</p>
               </div>
@@ -203,4 +203,5 @@ export default function PromoHero1({ apiEndpoint = "/carousal-banner1/" }) {
     </section>
   );
 }
+
 
