@@ -403,7 +403,7 @@ export default function PetProducts({ petType: propPetType = "dog" }) {
 
                       <div className="mt-4" />
 
-                      <div className="text-xs h-4">{state.success && <span className="text-green-600">Added ✓</span>}{state.error && <span className="text-red-600">{state.error}</span>}</div>
+                      <div className="text-xs h-4">{state.success && <span className="text-green-600">Added to Cart</span>}{state.error && <span className="text-red-600">{state.error}</span>}</div>
                     </div>
 
                     <div className="mt-3">
@@ -756,6 +756,7 @@ export default function PetProducts({ petType: propPetType = "dog" }) {
 //     </div>
 //   );
 // }
+
 
 
 
