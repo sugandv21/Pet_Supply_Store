@@ -721,12 +721,12 @@ export default function PetProducts({ petType: propPetType = "dog" }) {
                       {isModalOpen && (
                         <div className="absolute left-0 right-0 mt-2 rounded-md border bg-white p-3 text-sm shadow-lg z-50">
                           <p className="text-green-600">✅ Added to cart</p>
-                          <button
+                          {/* <button
                             className="mt-2 w-full rounded bg-gray-200 py-1 text-xs hover:bg-gray-300"
                             onClick={() => setCartModal((s) => ({ ...s, [prod.id]: false }))}
                           >
                             Close
-                          </button>
+                          </button> */}
                         </div>
                       )}
                     </div>
@@ -751,6 +751,7 @@ export default function PetProducts({ petType: propPetType = "dog" }) {
     </div>
   );
 }
+
 
 
 
