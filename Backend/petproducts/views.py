@@ -11,6 +11,48 @@ from .serializers import (
     PetProductSerializer,
     PetBannerSerializer,
 )
+from rest_framework import mixins, status
+from rest_framework.response import Response
+from rest_framework.decorators import action
+from rest_framework.permissions import AllowAny
+from rest_framework.throttling import UserRateThrottle, AnonRateThrottle
+from django.shortcuts import get_object_or_404
+from .models import ProductReview, PetProduct
+from .serializers_detail import ProductReviewSerializer
+
+# Optional: simple throttle to limit review submissions
+class ReviewAnonThrottle(AnonRateThrottle):
+    rate = "10/hour"  # adjust as needed
+
+class ProductReviewViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet):
+    serializer_class = ProductReviewSerializer
+    permission_classes = [AllowAny]
+    queryset = ProductReview.objects.select_related("product").all()
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        product_id = self.request.query_params.get("product")
+        if product_id:
+            qs = qs.filter(product_id=product_id, is_public=True)
+        else:
+            qs = qs.filter(is_public=True)
+        return qs
+
+    def create(self, request, *args, **kwargs):
+        data = request.data.copy()
+        product_pk = kwargs.get("product_pk")
+        if product_pk:
+            # ensure product exists
+            get_object_or_404(PetProduct, pk=product_pk)
+            data["product"] = product_pk
+
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+
+        # Keep new reviews private by default (admin can approve)
+        instance = serializer.save(ip_address=request.META.get("REMOTE_ADDR"), is_public=False)
+
+        return Response(self.get_serializer(instance).data, status=status.HTTP_201_CREATED)
 
 PAGE_SIZE = 9
 

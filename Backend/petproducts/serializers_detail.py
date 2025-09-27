@@ -2,15 +2,36 @@
 from rest_framework import serializers
 from .models import PetProduct, ProductReview
 from .serializers import ImageURLField, PetProductSerializer
-
+# petproducts/serializers.py
+from rest_framework import serializers
+from .models import ProductReview, PetProduct
 
 class ProductReviewSerializer(serializers.ModelSerializer):
-    created = serializers.DateTimeField(read_only=True)
+    # product optional when using nested route /pet-product/<pk>/reviews/
+    product = serializers.PrimaryKeyRelatedField(
+        queryset=PetProduct.objects.all(),
+        required=False,
+    )
 
     class Meta:
         model = ProductReview
-        fields = ["id", "name", "email", "rating", "review", "created"]
+        fields = ["id", "product", "name", "email", "rating", "review", "created", "is_public"]
+        read_only_fields = ["id", "created", "is_public"]
 
+    def validate_rating(self, value):
+        if value < 1 or value > 5:
+            raise serializers.ValidationError("Rating must be between 1 and 5.")
+        return value
+
+    def validate_name(self, value):
+        if not value.strip():
+            raise serializers.ValidationError("Name is required.")
+        return value
+
+    def validate_email(self, value):
+        if not value:
+            raise serializers.ValidationError("Email is required.")
+        return value
 
 class PetProductDetailSerializer(serializers.ModelSerializer):
     image = ImageURLField(required=False, allow_null=True)
