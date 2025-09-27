@@ -6,8 +6,11 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.conf import settings
 from django.core.mail import send_mail
 from django.utils.crypto import get_random_string
+import logging
 
 User = get_user_model()
+logger = logging.getLogger("account")  # dedicated logger for account app
+
 
 class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
     """
@@ -60,7 +63,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        # note: removed 'username' from fields — it's auto-generated server-side
+        # username is generated automatically; frontend doesn’t send it
         fields = ("email", "password", "first_name", "last_name", "phone")
 
     def validate_email(self, value):
@@ -73,27 +76,23 @@ class RegisterSerializer(serializers.ModelSerializer):
         Generate a username based on base (usually local-part of email).
         Append a short random string if needed to avoid collisions.
         """
-        username = base
-        # sanitize base to be safe (strip spaces)
-        username = username.replace(" ", "").lower()
-        # If username already exists, append short random strings until unique
+        username = base.replace(" ", "").lower()
         while User.objects.filter(username=username).exists():
             suffix = get_random_string(4, allowed_chars="abcdefghijklmnopqrstuvwxyz0123456789")
-            username = f"{base[:20]}{suffix}"  # truncate base to avoid long usernames
+            username = f"{base[:20]}{suffix}"
         return username
 
     def create(self, validated_data):
         phone = validated_data.pop("phone", "")
         password = validated_data.pop("password")
-    
+
         # Generate username from email's local part
         email = validated_data.get("email", "")
         local_part = (email.split("@")[0] if "@" in email else email) or "user"
-        username_candidate = local_part
-        username = self._generate_unique_username(username_candidate)
-    
+        username = self._generate_unique_username(local_part)
+
         user = User.objects.create_user(
-            username=username,   # auto-generated
+            username=username,
             password=password,
             **validated_data
         )
@@ -102,37 +101,35 @@ class RegisterSerializer(serializers.ModelSerializer):
         try:
             profile = getattr(user, "profile", None)
             if profile is None:
-                # import here to avoid circular import if model referenced elsewhere
                 from .models import UserProfile
                 profile = UserProfile.objects.create(user=user, phone=phone)
             else:
                 if phone:
                     profile.phone = phone
                     profile.save()
-        except Exception:
-            # fail silently for any profile persistence issues in dev; in prod you may want to log
-            pass
+        except Exception as exc:
+            logger.warning("UserProfile creation failed for %s: %s", user.email, exc)
 
-        # optional: send welcome email (fail silently in dev)
-        import logging
-        logger = logging.getLogger(__name__)
+        # optional: send welcome email
         try:
             subject = getattr(settings, "SITE_WELCOME_SUBJECT", "Welcome")
             from_email = getattr(settings, "DEFAULT_FROM_EMAIL", None)
             message = getattr(
                 settings,
                 "SITE_WELCOME_MESSAGE",
-                f"Hi {user.username},\n\nThanks for signing up."
+                f"Hi {user.first_name or user.username},\n\nThanks for signing up!"
             )
-           try:
-                if from_email:
-                    send_mail(
-                        subject, message, from_email, [user.email],
-                        fail_silently=False,  # show errors while debugging
-                        timeout=10
-                    )
-            except Exception as exc:
-                logger.exception("Failed to send welcome email")
+            if from_email:
+                send_mail(
+                    subject, message, from_email, [user.email],
+                    fail_silently=False,  # raise errors during debug
+                    timeout=10
+                )
+                logger.info("Welcome email sent to %s", user.email)
+            else:
+                logger.warning("No DEFAULT_FROM_EMAIL set; welcome email skipped for %s", user.email)
+        except Exception as exc:
+            logger.exception("Failed to send welcome email to %s", user.email)
 
         return user
 
@@ -141,6 +138,3 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ("id", "username", "email", "first_name", "last_name")
-
-
-
