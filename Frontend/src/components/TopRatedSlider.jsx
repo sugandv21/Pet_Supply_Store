@@ -1,46 +1,48 @@
-import React, { useState, useEffect } from "react"; 
-import { useNavigate } from "react-router-dom"; 
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react"; 
-import api from "../api/api";
+import api from "../lib/api";
 
-export default function TopRatedSlider({ products = [] }) {
+const API_ROOT =
+  import.meta.env.VITE_API_BASE?.replace(/\/+$/, "") || "http://127.0.0.1:8000/api";
+const j = (p) => `${API_ROOT}${p.startsWith("/") ? p : `/${p}`}`;
+
+export default function TopRatedSlider({ products }) {
   const [catCategory, setCatCategory] = useState(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const loadCategory = async () => {
+    async function load() {
       try {
-        const res = await api.get("/pet-categories/", { params: { pet_type: "cat" } });
+        const res = await api.get(j("/pet-categories/"), {
+          params: { pet_type: "cat" },
+        });
         const data = Array.isArray(res.data) ? res.data : res.data?.results ?? [];
         if (data.length) setCatCategory(data[0]);
       } catch (err) {
         console.error("❌ Failed to fetch cat category", err);
       }
-    };
-    loadCategory();
+    }
+    load();
   }, []);
 
-  // Filter valid dog products
-  const dogProducts = products
-    .filter((p) => p?.id != null)
-    .filter((p) => (p.id >= 10 && p.id <= 13) || p.id === 14);
+  // only dog products with id 4–9
+  const dogProducts = products.filter((p) => p.id >= 5 && p.id <= 9);
 
   const itemsPerPage = 4;
   const maxIndex = Math.max(0, dogProducts.length - itemsPerPage);
 
-  const nextSlide = () => setCurrentIndex((prev) => Math.min(prev + itemsPerPage, maxIndex));
-  const prevSlide = () => setCurrentIndex((prev) => Math.max(prev - itemsPerPage, 0));
+  const nextSlide = () => {
+    setCurrentIndex((prev) => Math.min(prev + itemsPerPage, maxIndex));
+  };
 
-  // If no products, show a placeholder
-  const displayProducts = dogProducts.length
-    ? dogProducts
-    : [
-        { id: "placeholder1", title: "No products", image: "/placeholder.png", rating: 0, rating_count: 0, price: "—" },
-      ];
+  const prevSlide = () => {
+    setCurrentIndex((prev) => Math.max(prev - itemsPerPage, 0));
+  };
 
   return (
-    <div className="grid grid-cols-5 gap-8 py-4 px-20">
+    <div className="grid grid-cols-5 gap-4 p-4">
       {/* Left side - cat category */}
       <div className="col-span-1 flex flex-col justify-center rounded-lg px-4">
         {catCategory ? (
@@ -60,28 +62,30 @@ export default function TopRatedSlider({ products = [] }) {
 
       {/* Right side - product slider */}
       <div className="col-span-4 relative overflow-hidden">
+        {/* Slider track */}
         <div
           className="flex transition-transform duration-500 ease-in-out"
           style={{
             transform: `translateX(-${currentIndex * (100 / itemsPerPage)}%)`,
-            width: `${displayProducts.length * (100 / itemsPerPage)}%`,
+            width: `${dogProducts.length * (100 / itemsPerPage)}%`,
           }}
         >
-          {displayProducts.map((product) => {
+          {dogProducts.map((product) => {
             const rating = Math.round(Number(product.rating) || 0);
             return (
-              <div key={product.id} className="w-1/4 px-2 flex-shrink-0">
+              <div key={product.id} className="w-1/2">
                 <div
-                  className="bg-white border rounded-lg p-2 shadow cursor-pointer hover:shadow-md transition h-60 w-full flex flex-col"
-                  onClick={() => product.id !== "placeholder1" && navigate(`/product/${product.id}`)}
+                  className="bg-white border rounded-lg p-2 shadow cursor-pointer hover:shadow-md transition w-50 h-66"
+                  onClick={() => navigate(`/product/${product.id}`)}
                 >
                   <img
                     src={product.image}
                     alt={product.title}
-                    className="w-full h-32 object-cover rounded"
+                    className="w-full h-32 object-contain rounded"
                   />
                   <h3 className="mt-2 text-sm font-semibold">{product.title}</h3>
 
+                  {/* ⭐ rating display */}
                   <div className="flex items-center mt-1">
                     {Array.from({ length: 5 }).map((_, i) => (
                       <svg
@@ -106,18 +110,21 @@ export default function TopRatedSlider({ products = [] }) {
           })}
         </div>
 
+        {/* Left Arrow */}
         {currentIndex > 0 && (
           <button
             onClick={prevSlide}
-            className="absolute left-0 top-1/2 -translate-y-1/2 bg-blue-700 text-white p-2 rounded-full shadow hover:bg-blue-600"
+            className="absolute left-0 top-1/2 -translate-y-1/2 bg-white p-2 rounded-full shadow hover:bg-gray-100"
           >
             <ChevronLeft />
           </button>
         )}
-        {currentIndex < maxIndex && displayProducts.length > itemsPerPage && (
+
+        {/* Right Arrow */}
+        {currentIndex < maxIndex && (
           <button
             onClick={nextSlide}
-            className="absolute right-0 top-1/2 -translate-y-1/2 bg-blue-700 text-white p-2 rounded-full shadow hover:bg-blue-600"
+            className="absolute right-0 top-1/2 -translate-y-1/2 bg-white p-2 rounded-full shadow hover:bg-gray-100"
           >
             <ChevronRight />
           </button>
@@ -249,4 +256,5 @@ export default function TopRatedSlider({ products = [] }) {
 //     </div>
 //   );
 // }
+
 
