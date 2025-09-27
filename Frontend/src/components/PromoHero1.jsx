@@ -170,7 +170,7 @@ export default function PromoHero1({ apiEndpoint = "/carousal-banner1/" }) {
             />
           )}
 
-          <div className="mt-6 text-center">{renderButton()}</div>
+          <div className="mt-12 text-center">{renderButton()}</div>
 
           {/* Rain animation container */}
           <div
@@ -203,3 +203,4 @@ export default function PromoHero1({ apiEndpoint = "/carousal-banner1/" }) {
     </section>
   );
 }
+
