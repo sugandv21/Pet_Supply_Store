@@ -41,7 +41,7 @@ export default function Footer() {
           <ul className="space-y-1 text-sm">
             <li><Link to="/about">About Us</Link></li>
             <li><Link to="/contact">Contact Us</Link></li>
-            <li><Link to="/shop">Shop</Link></li>
+            <li><Link to="/pets/dog">Shop</Link></li>
             <li><Link to="/blog">Blog</Link></li>
             <li><Link to="/faq">FAQ</Link></li>
           </ul>
@@ -51,13 +51,13 @@ export default function Footer() {
         <div>
           <h3 className="font-bold mb-3">Categories</h3>
           <ul className="space-y-1 text-sm">
-            <li><Link to="/categories/dog">Dog</Link></li>
-            <li><Link to="/categories/cat">Cat</Link></li>
-            <li><Link to="/categories/fish">Fish</Link></li>
-            <li><Link to="/categories/rats">Rats</Link></li>
-            <li><Link to="/categories/rabbits">Rabbits</Link></li>
-            <li><Link to="/categories/hamsters">Hamsters</Link></li>
-            <li><Link to="/categories/guinea-pigs">Guinea pigs</Link></li>
+            <li><Link to="/pets/dog">Dog</Link></li>
+            <li><Link to="/pets/cat">Cat</Link></li>
+            <li><Link to="/pets/dog">Fish</Link></li>
+            <li><Link to="/pets/small-pets">Rats</Link></li>
+            <li><Link to="/pets/cat">Rabbits</Link></li>
+            <li><Link to="/pets/small-pets">Hamsters</Link></li>
+            <li><Link to="/pets/dog">Guinea pigs</Link></li>
           </ul>
         </div>
 
