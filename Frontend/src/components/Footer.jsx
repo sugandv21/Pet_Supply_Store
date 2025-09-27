@@ -77,10 +77,37 @@ export default function Footer() {
           <div className="flex items-center gap-3 mb-6">
             <h3 className="font-bold">Follow:</h3>
             <div className="flex gap-3">
-              <Link to="#"><img src={FacebookIcon} alt="Facebook" className="w-6 h-6" /></Link>
-              <Link to="#"><img src={InstagramIcon} alt="Instagram" className="w-6 h-6" /></Link>
-              <Link to="#"><img src={YoutubeIcon} alt="YouTube" className="w-6 h-6" /></Link>
-              <Link to="#"><img src={WhatsappIcon} alt="WhatsApp" className="w-6 h-6" /></Link>
+              <Link
+                to={{ pathname: "https://www.facebook.com" }}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <img src={FacebookIcon} alt="Facebook" className="w-6 h-6" />
+              </Link>
+              
+              <Link
+                to={{ pathname: "https://www.instagram.com" }}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <img src={InstagramIcon} alt="Instagram" className="w-6 h-6" />
+              </Link>
+              
+              <Link
+                to={{ pathname: "https://www.youtube.com" }}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <img src={YoutubeIcon} alt="YouTube" className="w-6 h-6" />
+              </Link>
+              
+              <Link
+                to={{ pathname: "https://wa.me/6382603079" }}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <img src={WhatsappIcon} alt="WhatsApp" className="w-6 h-6" />
+              </Link>
             </div>
           </div>
           <h3 className="font-bold mb-2">Get in Touch</h3>
@@ -106,3 +133,4 @@ export default function Footer() {
     </footer>
   );
 }
+
