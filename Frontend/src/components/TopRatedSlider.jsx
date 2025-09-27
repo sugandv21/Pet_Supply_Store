@@ -34,7 +34,8 @@ export default function TopRatedSlider({ products = [] }) {
 
   return (
     <div className="grid grid-cols-5 gap-8 py-4 px-20">
-      {/* Left side - cat category */}
+      
+      <h2 className="text-3xl text-center font-semibold mb-8">Top Rated Calming Products</h2>
       <div className="col-span-1 flex flex-col justify-center rounded-lg px-4">
         {catCategory ? (
           <>
@@ -119,3 +120,4 @@ export default function TopRatedSlider({ products = [] }) {
     </div>
   );
 }
+
