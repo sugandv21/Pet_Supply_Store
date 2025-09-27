@@ -85,15 +85,18 @@ class RegisterSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         phone = validated_data.pop("phone", "")
         password = validated_data.pop("password")
-
+    
         # Generate username from email's local part
         email = validated_data.get("email", "")
         local_part = (email.split("@")[0] if "@" in email else email) or "user"
         username_candidate = local_part
         username = self._generate_unique_username(username_candidate)
-
-        # create_user typically requires username if that's the USERNAME_FIELD
-        user = User.objects.create_user(username=username, password=password, **validated_data)
+    
+        user = User.objects.create_user(
+            username=username,   # auto-generated
+            password=password,
+            **validated_data
+        )
 
         # ensure profile exists and save phone if provided
         try:
@@ -131,3 +134,4 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ("id", "username", "email", "first_name", "last_name")
+
