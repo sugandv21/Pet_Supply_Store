@@ -114,6 +114,8 @@ class RegisterSerializer(serializers.ModelSerializer):
             pass
 
         # optional: send welcome email (fail silently in dev)
+        import logging
+        logger = logging.getLogger(__name__)
         try:
             subject = getattr(settings, "SITE_WELCOME_SUBJECT", "Welcome")
             from_email = getattr(settings, "DEFAULT_FROM_EMAIL", None)
@@ -122,14 +124,15 @@ class RegisterSerializer(serializers.ModelSerializer):
                 "SITE_WELCOME_MESSAGE",
                 f"Hi {user.username},\n\nThanks for signing up."
             )
-            if from_email:
-                send_mail(
-                    subject, message, from_email, [user.email],
-                    fail_silently=True,
-                    timeout=5  # ensures it won’t block forever
-                )
-        except Exception:
-            pass
+           try:
+                if from_email:
+                    send_mail(
+                        subject, message, from_email, [user.email],
+                        fail_silently=False,  # show errors while debugging
+                        timeout=10
+                    )
+            except Exception as exc:
+                logger.exception("Failed to send welcome email")
 
         return user
 
@@ -138,5 +141,6 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ("id", "username", "email", "first_name", "last_name")
+
 
 
