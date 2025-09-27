@@ -54,7 +54,7 @@ export default function YouMightLike({ products }) {
             <div className="mt-auto">
               <div className="text-xs h-4 mb-1">
                 {cartState[leftProduct.id]?.success && (
-                  <span className="text-green-600">Added ✓</span>
+                  <span className="text-green-600">Added </span>
                 )}
                 {cartState[leftProduct.id]?.error && (
                   <span className="text-red-600">{cartState[leftProduct.id].error}</span>
@@ -134,3 +134,4 @@ export default function YouMightLike({ products }) {
     </div>
   );
 }
+
