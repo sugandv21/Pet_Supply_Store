@@ -1,11 +1,11 @@
+// src/components/TopRatedSlider.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import api from "../api/api";
 
-export default function TopRatedSlider() {
+export default function TopRatedSlider({ products = [] }) {
   const [catCategory, setCatCategory] = useState(null);
-  const [dogProducts, setDogProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -14,33 +14,25 @@ export default function TopRatedSlider() {
 
   const navigate = useNavigate();
 
-  // Fetch cat category and dog products
+  // Fetch cat category only
   useEffect(() => {
-    const loadData = async () => {
+    const loadCategory = async () => {
       setLoading(true);
-      setError(null);
       try {
-        // Fetch cat category
-        const catRes = await api.get("/pet-categories/", { params: { pet_type: "cat" } });
-        const catData = Array.isArray(catRes.data) ? catRes.data : catRes.data?.results ?? [];
-        if (catData.length) setCatCategory(catData[0]);
-
-        // Fetch dog products
-        const dogRes = await api.get("/pet-products/", { params: { pet_type: "dog" } });
-        const dogData = Array.isArray(dogRes.data) ? dogRes.data : dogRes.data?.results ?? [];
-        setDogProducts(dogData);
+        const res = await api.get("/pet-categories/", { params: { pet_type: "cat" } });
+        const data = Array.isArray(res.data) ? res.data : res.data?.results ?? [];
+        if (data.length) setCatCategory(data[0]);
       } catch (err) {
-        console.error("❌ Failed to fetch Top Rated slider data", err);
-        setError("Failed to load Top Rated products");
+        console.error("❌ Failed to fetch cat category", err);
+        setError("Failed to load category");
       } finally {
         setLoading(false);
       }
     };
-
-    loadData();
+    loadCategory();
   }, []);
 
-  const maxIndex = Math.max(0, dogProducts.length - itemsPerPage);
+  const maxIndex = Math.max(0, products.length - itemsPerPage);
 
   const nextSlide = () => setCurrentIndex((prev) => Math.min(prev + itemsPerPage, maxIndex));
   const prevSlide = () => setCurrentIndex((prev) => Math.max(prev - itemsPerPage, 0));
@@ -60,7 +52,9 @@ export default function TopRatedSlider() {
               className="w-full h-52 object-cover rounded-lg mb-2"
             />
             <h2 className="text-lg font-semibold">{catCategory.title}</h2>
-            {catCategory.subtitle && <p className="text-sm text-gray-600">{catCategory.subtitle}</p>}
+            {catCategory.subtitle && (
+              <p className="text-sm text-gray-600">{catCategory.subtitle}</p>
+            )}
           </>
         ) : (
           <p>Loading category...</p>
@@ -73,10 +67,10 @@ export default function TopRatedSlider() {
           className="flex transition-transform duration-500 ease-in-out"
           style={{
             transform: `translateX(-${currentIndex * (100 / itemsPerPage)}%)`,
-            width: `${dogProducts.length * (100 / itemsPerPage)}%`,
+            width: `${products.length * (100 / itemsPerPage)}%`,
           }}
         >
-          {dogProducts.map((product) => {
+          {products.map((product) => {
             const rating = Math.round(Number(product.rating) || 0);
             return (
               <div key={product.id} className="w-1/4 px-2">
@@ -104,7 +98,9 @@ export default function TopRatedSlider() {
                         <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.176 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                       </svg>
                     ))}
-                    <span className="ml-2 text-xs text-gray-500">({product.rating_count ?? 0})</span>
+                    <span className="ml-2 text-xs text-gray-500">
+                      ({product.rating_count ?? 0})
+                    </span>
                   </div>
 
                   <p className="font-bold mt-2">₹ {product.price ?? "—"}</p>
