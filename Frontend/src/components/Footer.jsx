@@ -77,37 +77,38 @@ export default function Footer() {
           <div className="flex items-center gap-3 mb-6">
             <h3 className="font-bold">Follow:</h3>
             <div className="flex gap-3">
-              <Link
-                to={{ pathname: "https://www.facebook.com" }}
+              <a
+                href="https://www.facebook.com/yourpage"
                 target="_blank"
                 rel="noopener noreferrer"
               >
                 <img src={FacebookIcon} alt="Facebook" className="w-6 h-6" />
-              </Link>
+              </a>
               
-              <Link
-                to={{ pathname: "https://www.instagram.com" }}
+              <a
+                href="https://www.instagram.com/yourprofile"
                 target="_blank"
                 rel="noopener noreferrer"
               >
                 <img src={InstagramIcon} alt="Instagram" className="w-6 h-6" />
-              </Link>
+              </a>
               
-              <Link
-                to={{ pathname: "https://www.youtube.com" }}
+              <a
+                href="https://www.youtube.com/yourchannel"
                 target="_blank"
                 rel="noopener noreferrer"
               >
                 <img src={YoutubeIcon} alt="YouTube" className="w-6 h-6" />
-              </Link>
+              </a>
               
-              <Link
-                to={{ pathname: "https://wa.me/6382603079" }}
+              <a
+                href="https://wa.me/yourwhatsappnumber"
                 target="_blank"
                 rel="noopener noreferrer"
               >
                 <img src={WhatsappIcon} alt="WhatsApp" className="w-6 h-6" />
-              </Link>
+              </a>
+
             </div>
           </div>
           <h3 className="font-bold mb-2">Get in Touch</h3>
